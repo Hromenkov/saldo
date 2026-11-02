@@ -20,6 +20,8 @@ const json = (body: RecognizeResponse, status = 200) =>
   new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json; charset=utf-8' } });
 
 export default async (req: Request) => {
+  // GET — перевірка з браузера: чи підключений ключ (сам ключ не показується)
+  if (req.method === 'GET') return new Response(JSON.stringify({ service: 'recognize', model: MODEL, key: process.env.ANTHROPIC_API_KEY ? 'підключено' : 'не задано' }), { headers: { 'content-type': 'application/json; charset=utf-8' } });
   if (req.method !== 'POST') return json({ ok: false, error: 'Потрібен POST' }, 405);
   if (!process.env.ANTHROPIC_API_KEY) return json({ ok: false, error: 'Розпізнавання ще не підключене: на сервері не задано ключ ANTHROPIC_API_KEY' }, 503);
 
