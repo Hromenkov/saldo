@@ -510,6 +510,44 @@ table.dt { width: 100%; border-collapse: collapse; min-width: 720px; }
 .assist .composer .bar { background: var(--md-surface-container-lowest); }
 .assist .stats3 b { font-size: 14px; white-space: nowrap; }
 .assist .stats3 div { padding: 8px 10px; }
+/* ===== Soft theme: deeper background, raised widgets, gentle motion ===== */
+:root {
+  --app-bg: #E3E9F2;
+  --main-bg: #EEF2F8;
+  --card-shadow: 0 1px 2px rgba(16,32,64,.05), 0 4px 14px rgba(16,32,64,.06);
+  --card-shadow-hover: 0 2px 4px rgba(16,32,64,.06), 0 12px 28px rgba(16,32,64,.10);
+  --ease: cubic-bezier(.2,0,0,1);
+}
+body { background: var(--app-bg); }
+.main { background: var(--main-bg); }
+.search { background: rgba(255,255,255,.65); }
+.card-filled, .card-outlined { background: #fff; border: 1px solid rgba(16,32,64,.06); box-shadow: var(--card-shadow); }
+.card { transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+.card:hover { box-shadow: var(--card-shadow-hover); }
+.card.stat:hover { transform: translateY(-2px); }
+.stat .top .ms { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 19px; background: #E8F0FE; color: var(--md-primary); }
+.g4 > .stat:nth-child(1) { background: linear-gradient(160deg, #EEF4FF 0%, #fff 55%); }
+.g4 > .stat:nth-child(2) { background: linear-gradient(160deg, #ECF8F1 0%, #fff 55%); }
+.g4 > .stat:nth-child(2) .top .ms { background: #DDF3E5; color: #1E7A46; }
+.g4 > .stat:nth-child(3) { background: linear-gradient(160deg, #F3EFFD 0%, #fff 55%); }
+.g4 > .stat:nth-child(3) .top .ms { background: #EAE3FB; color: #6741C6; }
+.g4 > .stat:nth-child(4) { background: linear-gradient(160deg, #FFF6E6 0%, #fff 55%); }
+.g4 > .stat:nth-child(4) .top .ms { background: #FDEBC8; color: #9A6200; }
+.banner { box-shadow: var(--card-shadow); background: linear-gradient(100deg, #D3E3FD, #E4EEFE); }
+.drawer .nav-item { transition: background .2s var(--ease), color .2s var(--ease); }
+.nav-item[aria-current="page"] { box-shadow: 0 1px 2px rgba(16,32,64,.06); }
+.assist { background: #F3F6FB; }
+/* entrance */
+@keyframes rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes msgIn { from { opacity: 0; transform: translateY(8px) scale(.98); } to { opacity: 1; transform: none; } }
+.enter-anim { animation: rise .45s var(--ease) both; }
+.msg.new { animation: msgIn .35s var(--ease) both; transform-origin: bottom left; }
+.msg.me.new { transform-origin: bottom right; }
+.assist.open, .body.with-assist .assist { animation: none; }
+@media (prefers-reduced-motion: reduce) {
+  .enter-anim, .msg.new { animation: none; }
+  .card, .card.stat:hover { transition: none; transform: none; }
+}
 </style>
 </head>
 <body>
@@ -992,7 +1030,27 @@ function render() {
 }
 function go(v) {
   if (!navSets[state.role].some(n => n[0] === v)) v = navSets[state.role][0][0];
-  state.view = v; closeSheet(); render();
+  state.view = v; closeSheet(); render(); animateEnter();
+}
+const reduceMotion = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+function animateEnter() {
+  if (reduceMotion()) return;
+  $('#main').querySelectorAll('.page-head, .banner, .card, .tabs, h1').forEach((el, i) => {
+    el.classList.remove('enter-anim'); void el.offsetWidth;
+    el.style.animationDelay = Math.min(i * 45, 450) + 'ms'; el.classList.add('enter-anim');
+    el.addEventListener('animationend', () => { el.classList.remove('enter-anim'); el.style.animationDelay = ''; }, { once: true });
+  });
+  $('#main').querySelectorAll('.stat .v').forEach(el => {
+    const txt = el.textContent, m = txt.match(/^([\d\s\u00a0]+)(,\d+)?(.*)$/);
+    if (!m) return;
+    const target = +m[1].replace(/[\s\u00a0]/g, ''), frac = m[2] || '', rest = m[3];
+    if (!target || frac) return;
+    const t0 = performance.now(), dur = 700;
+    const fmt = n => String(n).replace(/\B(?=(\d{3})+(?!\d))/g, ' ');
+    const step = t => { const k = Math.min(1, (t - t0) / dur), e = 1 - Math.pow(1 - k, 3);
+      el.textContent = fmt(Math.round(target * e)) + rest; if (k < 1) requestAnimationFrame(step); else el.textContent = txt; };
+    requestAnimationFrame(step);
+  });
 }
 
 document.addEventListener('click', e => {
@@ -1093,9 +1151,11 @@ const REPLIES = {
   'Підписати в Дії': 'Надіслав запит на підпис у Дію. Підтвердіть у застосунку, і я подам декларацію.'
 };
 function now() { const d = new Date(); return String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'); }
+let chatSeen = 0;
 function renderChat() {
+  const seen = chatSeen; chatSeen = state.chat.length;
   $('#feed').innerHTML = `<span class="day">Сьогодні</span>` +
-    state.chat.map(m => `<div class="msg ${m.who}">${m.who === 'sys' ? '<span class="av">С</span>' : ''}<div class="bubble">${m.done ? m.html.replace('class="acts"', 'class="acts done"') : m.html}${m.typing ? '' : `<span class="time">${m.time}</span>`}</div></div>`).join('');
+    state.chat.map((m, i) => `<div class="msg ${m.who}${seen && i >= seen && !reduceMotion() ? ' new' : ''}">${m.who === 'sys' ? '<span class="av">С</span>' : ''}<div class="bubble">${m.done ? m.html.replace('class="acts"', 'class="acts done"') : m.html}${m.typing ? '' : `<span class="time">${m.time}</span>`}</div></div>`).join('');
 }
 function setAssist(open) {
   const wide = matchMedia('(min-width: 1201px)').matches;
@@ -1165,6 +1225,7 @@ document.addEventListener('change', e => {
 
 render();
 renderChat();
+animateEnter();
 setAssist(matchMedia('(min-width: 1201px)').matches);
 
 /* onboarding: business type → ready accounting contour */
