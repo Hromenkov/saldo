@@ -163,7 +163,7 @@ function UploadDialog() {
       res.forEach(r => { if (r.status === 'rejected') msgs.push(errText(r.reason)); });
       if (done.length) {
         const check = done.filter(d => d.st === 'check').length;
-        msgs.unshift(`Розпізнано ${done.length} ${plural(done.length, 'документ', 'документи', 'документів')}` + (check ? `, ${check} потребують перевірки` : ', усі перевірки пройдено'));
+        msgs.unshift(`Розпізнано ${done.length} ${plural(done.length, 'документ', 'документи', 'документів')}` + (check ? `, ${check} ${plural(check, 'потребує', 'потребують', 'потребують')} перевірки` : ', усі перевірки пройдено'));
       }
       if (done.length === 1) openSheet({ kind: 'doc', id: done[0].id });
     }

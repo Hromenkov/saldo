@@ -23,7 +23,7 @@ export const Recognized = z.object({
   net: z.number().nullable().describe('Сума без ПДВ, грн'),
   vat: z.number().nullable().describe('Сума ПДВ, грн; 0 якщо «без ПДВ»'),
   total: z.number().nullable().describe('Всього до сплати з ПДВ, грн'),
-  vat_rate: z.number().nullable().describe('Ставка ПДВ у відсотках: 20, 14, 7 або 0'),
+  vat_rate: z.number().nullable().describe('Ставка ПДВ у відсотках: 20, 14, 7 або 0; null, якщо ставок кілька'),
   currency: z.string().describe('Валюта, зазвичай UAH'),
   account: z.enum(ACCOUNTS).describe('Найімовірніший рахунок обліку для витрат або доходу за цим документом'),
   account_reason: z.string().describe('Одне коротке речення українською, чому саме цей рахунок'),

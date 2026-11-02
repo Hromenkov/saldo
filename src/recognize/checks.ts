@@ -33,8 +33,14 @@ const money = (n: number) => n.toLocaleString('uk-UA', { minimumFractionDigits: 
 export function runChecks(r: Recognized, existing: Doc[], today = new Date()): Check[] {
   const out: Check[] = [];
   const code = (r.counterparty.edrpou || '').replace(/\D/g, '');
+  const ipn = (r.counterparty.vat_ipn || '').replace(/\D/g, '');
 
-  if (!code) {
+  if (!code && ipn.length === 12) {
+    // у податковій накладній є лише ІПН платника ПДВ (12 цифр); перші 7–8 цифр збігаються з ЄДРПОУ, окремої контрольної суми немає
+    out.push({ ok: true, t: `ІПН платника ПДВ ${ipn}: 12 цифр, звірте з реєстром платників ПДВ` });
+  } else if (code.length === 12) {
+    out.push({ ok: true, t: `ІПН платника ПДВ ${code}: 12 цифр, звірте з реєстром платників ПДВ` });
+  } else if (!code) {
     if (r.kind !== 'receipt') out.push({ ok: false, t: 'На документі не знайдено ЄДРПОУ або ІПН контрагента' });
   } else if (code.length === 8) {
     out.push(edrpouValid(code)
