@@ -500,6 +500,16 @@ table.dt { width: 100%; border-collapse: collapse; min-width: 720px; }
   .assist.open { transform: none; }
 }
 @media (max-width: 840px) { .body.with-assist { grid-template-columns: minmax(0, 1fr); } }
+/* visually separate the assistant from the page */
+.assist { background: var(--md-surface-container); border: 1px solid var(--md-outline-variant); box-shadow: 0 1px 2px rgba(0,0,0,.06), 0 6px 20px rgba(26,64,160,.10); }
+.assist-head { background: var(--md-primary); color: var(--md-on-primary); border-bottom: 0; padding: 10px 8px 10px 20px; }
+.assist-head .title-m .ms, .assist-head .icon-btn, .assist-head .icon-btn .ms { color: var(--md-on-primary) !important; }
+.assist .day { background: var(--md-surface-container-lowest); }
+.assist .msg.sys .bubble { background: var(--md-surface-container-lowest); }
+.assist .composer { background: var(--md-surface-container); border-top: 1px solid var(--md-outline-variant); }
+.assist .composer .bar { background: var(--md-surface-container-lowest); }
+.assist .stats3 b { font-size: 14px; white-space: nowrap; }
+.assist .stats3 div { padding: 8px 10px; }
 </style>
 </head>
 <body>
