@@ -1,0 +1,188 @@
+import { useEffect, useRef } from 'react';
+import { CHANGE_TYPES, OPS, type Doc } from '../data';
+import { useApp } from '../store';
+import { cx, fmt, ModeChip, Ms, plural, StatusChip } from '../lib';
+
+function DocSheet({ id }: { id: number }) {
+  const { s, upd, snack, closeSheet } = useApp();
+  // після «Відхилити» документа вже немає в списку, але панель ще виїжджає: показуємо останній стан
+  const last = useRef<Doc | undefined>(undefined);
+  const d = s.docs.find(x => x.id === id) || last.current;
+  last.current = d;
+  if (!d) return null;
+  const needs = d.st === 'check';
+  const net = d.sum - (d.kind === 'pn' ? 0 : d.vat);
+  const post = () => {
+    const prev = d.st;
+    upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) dd.st = 'ok'; });
+    closeSheet();
+    snack(`${d.type} № ${d.no} проведено`, () => upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) dd.st = prev; }));
+  };
+  const reject = () => {
+    const i = s.docs.findIndex(x => x.id === id);
+    upd(x => { x.docs.splice(i, 1); });
+    closeSheet();
+    snack('Документ відхилено', () => upd(x => { x.docs.splice(i, 0, d); }));
+  };
+  return (
+    <>
+      <div className="sheet-head"><h2 className="title-l">{d.type} № {d.no}</h2><button className="icon-btn sl" aria-label="Закрити" onClick={closeSheet}><Ms>close</Ms></button></div>
+      <div className="sheet-body">
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><StatusChip st={d.st} /><span className="status st-mute"><Ms>{d.src === 'Telegram' ? 'send' : d.src === 'Email' ? 'mail' : 'cloud_download'}</Ms>{d.src}</span></div>
+        <div className="preview" aria-hidden="true">
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><b>{d.cp}</b><span className="num">{d.date}.2026</span></div>
+          {[70, 45, 85, 60].map(w => <div key={w} className="pl" style={{ width: w + '%' }} />)}
+          <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}><span>Разом з ПДВ</span><b className="num">{fmt(d.sum)} ₴</b></div>
+        </div>
+        <div className="conf body-s"><span>Впевненість розпізнавання</span><span className="bar"><span style={{ width: d.conf + '%' }} /></span><span className="num">{d.conf}%</span></div>
+        <div className="form-grid">
+          <div className="tf full"><input id="f-cp" placeholder=" " defaultValue={d.cp} /><label htmlFor="f-cp">Контрагент</label><Ms className="trail-ic">verified</Ms><div className="support">ЄДРПОУ перевірено в ЄДР</div></div>
+          <div className="tf"><input id="f-no" placeholder=" " defaultValue={d.no} /><label htmlFor="f-no">Номер</label></div>
+          <div className="tf"><input id="f-date" placeholder=" " defaultValue={d.date + '.2026'} /><label htmlFor="f-date">Дата</label><Ms className="trail-ic">calendar_today</Ms></div>
+          <div className="tf"><input id="f-net" placeholder=" " defaultValue={fmt(net)} /><label htmlFor="f-net">Сума без ПДВ, ₴</label></div>
+          <div className="tf"><input id="f-vat" placeholder=" " defaultValue={fmt(d.vat)} /><label htmlFor="f-vat">ПДВ, ₴</label></div>
+          <div className={cx('tf full', needs && 'warn')}>
+            <select id="f-acc">{['93 Витрати на збут', '92 Адміністративні витрати', '281 Товари на складі', '702 Дохід від реалізації', '641 Розрахунки за податками'].map(o => <option key={o}>{o}</option>)}</select>
+            <label htmlFor="f-acc">Рахунок витрат або доходу</label><Ms className="trail-ic">arrow_drop_down</Ms>
+            {needs && <div className="support">Система не впевнена: уточніть призначення</div>}
+          </div>
+        </div>
+        <div>
+          <div className="title-s" style={{ marginBottom: 8 }}>Запропоновані проводки</div>
+          <div className="posting"><table><thead><tr><th>Дт</th><th>Кт</th><th className="r">Сума, ₴</th><th>Зміст</th></tr></thead>
+            <tbody>{d.lines.map((l, i) => <tr key={i}><td>{l[0]}</td><td>{l[1]}</td><td className="r">{fmt(l[2])}</td><td className="body-s muted">{l[3]}</td></tr>)}</tbody></table></div>
+        </div>
+      </div>
+      <div className="sheet-foot">
+        <button className="btn btn-text sl" onClick={reject}>Відхилити</button>
+        <button className="btn btn-filled sl" disabled={d.st === 'ok'} onClick={post}><Ms>check</Ms>{d.st === 'ok' ? 'Проведено' : 'Провести'}</button>
+      </div>
+    </>
+  );
+}
+
+function OpSheet({ i }: { i: number }) {
+  const { snack, closeSheet } = useApp();
+  const o = OPS[i];
+  return (
+    <>
+      <div className="sheet-head"><h2 className="title-l">{o[1]}</h2><button className="icon-btn sl" aria-label="Закрити" onClick={closeSheet}><Ms>close</Ms></button></div>
+      <div className="sheet-body">
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><ModeChip mode={o[5]} /><span className="status st-mute">{o[0]}</span></div>
+        <div className="form-grid">
+          <div className="tf full"><input id="op-doc" placeholder=" " defaultValue={o[2]} /><label htmlFor="op-doc">Документ</label></div>
+          <div className="tf full"><input id="op-an" placeholder=" " defaultValue={o[4]} /><label htmlFor="op-an">Управлінська аналітика</label></div>
+        </div>
+        <div><div className="title-s" style={{ marginBottom: 8 }}>Шаблон проводок</div>
+          <div className="posting"><table><thead><tr><th>Дт</th><th>Кт</th><th>Зміст</th></tr></thead><tbody>{o[3].map((l, j) => <tr key={j}><td>{l[0]}</td><td>{l[1]}</td><td className="body-s muted">{l[2]}</td></tr>)}</tbody></table></div></div>
+        <div><div className="title-s" style={{ marginBottom: 10 }}>Перевірки перед проведенням</div>
+          <ul className="checks body-m">
+            <li><Ms>check_circle</Ms>Кореспонденція рахунків відповідає Інструкції 291</li>
+            <li><Ms>check_circle</Ms>Сума проводок дорівнює сумі документа</li>
+            {(o[1].includes('техкарт') || o[1].includes('ПРРО')) && <li><Ms>check_circle</Ms>Кількість списання = техкарта × продажі за зміну</li>}
+            {o[3].some(l => l.includes('644') || l.includes('641')) && <li><Ms>check_circle</Ms>ПДВ звірено з ЄРПН</li>}
+            {o[5] === 'confirm' && <li><Ms>check_circle</Ms>Потрібне підтвердження відповідальної особи</li>}
+          </ul></div>
+        <div className="card card-filled"><div className="title-s">Тест шаблону</div><div className="body-s muted" style={{ marginTop: 4 }}>Еталонний приклад, перевірений бухгалтером-методологом: документ на вході дає саме ці проводки.</div><div style={{ marginTop: 10 }}><span className="status st-ok"><Ms>check</Ms>Пройдено</span></div></div>
+      </div>
+      <div className="sheet-foot"><button className="btn btn-text sl" onClick={closeSheet}>Закрити</button><button className="btn btn-filled sl" onClick={() => snack('Шаблон збережено. Нова версія діятиме з наступного документа')}><Ms>save</Ms>Зберегти</button></div>
+    </>
+  );
+}
+
+const Tf = ({ id, label, children, ic }: { id: string; label: string; children: React.ReactNode; ic?: string }) =>
+  <div className="tf">{children}<label htmlFor={id}>{label}</label>{ic && <Ms className="trail-ic">{ic}</Ms>}</div>;
+
+function SignDialog({ name, per }: { name: string; per: string }) {
+  const { upd, snack, hideDialog } = useApp();
+  const sign = () => {
+    upd(d => { const r = d.reports.find(x => x.name === name && x.st === 'ready'); if (r) r.st = 'sent'; });
+    hideDialog(); snack('Звіт підписано і надіслано. Квитанцію збережено');
+  };
+  return (
+    <>
+      <Ms className="d-ic">draw</Ms>
+      <h2 className="headline-s">Підписати і надіслати</h2>
+      <p className="body-m muted" style={{ margin: 0, textAlign: 'center' }}>{name} · {per}. Звіт буде підписано вашим КЕП і надіслано до ДПС.</p>
+      <Tf id="k-type" label="Тип ключа" ic="arrow_drop_down"><select id="k-type"><option>Дія.Підпис</option><option>Файловий ключ</option><option>Хмарний ключ (SmartID, Вчасно.КЕП)</option></select></Tf>
+      <Tf id="k-who" label="Підписант" ic="arrow_drop_down"><select id="k-who"><option>Андрій Петренко, директор</option><option>Олена Бондар, головний бухгалтер</option></select></Tf>
+      <div className="actions"><button className="btn btn-text sl" onClick={hideDialog}>Скасувати</button><button className="btn btn-text sl" onClick={sign}>Підписати</button></div>
+    </>
+  );
+}
+
+function UploadDialog() {
+  const { snack, hideDialog } = useApp();
+  return (
+    <>
+      <Ms className="d-ic">upload_file</Ms>
+      <h2 className="headline-s">Завантажити документи</h2>
+      <p className="body-m muted" style={{ margin: 0, textAlign: 'center' }}>PDF, фото або XML. Система сама розпізнає тип документа і запропонує проводки.</p>
+      <label className="card card-outlined" style={{ borderStyle: 'dashed', textAlign: 'center', padding: 28, cursor: 'pointer', display: 'block' }}>
+        <Ms style={{ fontSize: 40, color: 'var(--md-primary)' }}>cloud_upload</Ms>
+        <div className="title-s" style={{ marginTop: 8 }}>Перетягніть файли сюди</div><div className="body-s muted">або натисніть, щоб вибрати</div>
+        <input type="file" id="fileIn" multiple hidden onChange={e => {
+          const n = e.target.files?.length || 0; if (!n) return;
+          hideDialog(); snack(`Завантажено ${n} ${plural(n, 'файл', 'файли', 'файлів')}. Розпізнавання займе до хвилини`);
+        }} />
+      </label>
+      <div className="body-s muted" style={{ textAlign: 'center' }}>Також можна надсилати на docs@saldo.ua або в Telegram-бот</div>
+      <div className="actions"><button className="btn btn-text sl" onClick={hideDialog}>Закрити</button></div>
+    </>
+  );
+}
+
+function PlanDialog() {
+  const { upd, snack, hideDialog } = useApp();
+  const ref = useRef<HTMLDivElement>(null);
+  const save = () => {
+    const v = (id: string) => (ref.current!.querySelector<HTMLInputElement>('#' + id)!.value || '').trim();
+    const type = v('ch-type'), date = v('ch-date') || '01.12.2026', doc = v('ch-doc'), obj = v('ch-obj');
+    const recalc = ref.current!.querySelector<HTMLInputElement>('#ch-recalc')!.checked;
+    upd(d => { d.history.unshift(['event_upcoming', date, type + (obj ? ': ' + obj : ''), (doc || 'Без документа') + ' · заплановано' + (recalc ? ' · з перерахунком управлінки' : '')]); });
+    hideDialog(); snack(`Зміну заплановано з ${date}. Система нагадає за тиждень`);
+  };
+  return (
+    <div style={{ display: 'contents' }} ref={ref}>
+      <Ms className="d-ic">edit_calendar</Ms>
+      <h2 className="headline-s">Запланувати зміну</h2>
+      <p className="body-m muted" style={{ margin: 0, textAlign: 'center' }}>Зміна набуде чинності з указаної дати. Попередні періоди лишаться такими, як були.</p>
+      <Tf id="ch-type" label="Що змінюється" ic="arrow_drop_down"><select id="ch-type">{CHANGE_TYPES.map(t => <option key={t}>{t}</option>)}</select></Tf>
+      <div className="form-grid">
+        <Tf id="ch-date" label="Діє з" ic="calendar_today"><input id="ch-date" placeholder=" " defaultValue="01.12.2026" /></Tf>
+        <Tf id="ch-doc" label="Документ-підстава"><input id="ch-doc" placeholder=" " defaultValue="Наказ №42" /></Tf>
+      </div>
+      <Tf id="ch-obj" label="Об’єкт або опис зміни"><input id="ch-obj" placeholder=" " defaultValue="" /></Tf>
+      <div className="set-row" style={{ padding: 0, minHeight: 56 }}><span className="txt"><div className="title-s">Перерахувати управлінку за минулі періоди</div><div className="body-s muted">Бухгалтерський облік закритих періодів не зміниться</div></span><label className="switch"><input type="checkbox" id="ch-recalc" aria-label="Перерахувати управлінку" /><span className="track" /><span className="thumb" /></label></div>
+      <div className="actions"><button className="btn btn-text sl" onClick={hideDialog}>Скасувати</button><button className="btn btn-text sl" onClick={save}>Запланувати</button></div>
+    </div>
+  );
+}
+
+export function Overlays() {
+  const { s, closeSheet, hideDialog, snackState, closeSnack } = useApp();
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') { closeSheet(); hideDialog(); } };
+    document.addEventListener('keydown', onKey); return () => document.removeEventListener('keydown', onKey);
+  }, [closeSheet, hideDialog]);
+  const dl = s.dialog;
+  return (
+    <>
+      <div className={cx('scrim', (s.sheetOpen || s.drawerOpen) && 'open')} id="scrim" onClick={closeSheet} />
+      <aside className={cx('sheet', s.sheetOpen && 'open')} id="sheet" aria-label="Документ">
+        {s.sheet?.kind === 'doc' && <DocSheet key={s.overlaySeq} id={s.sheet.id} />}
+        {s.sheet?.kind === 'op' && <OpSheet key={s.overlaySeq} i={s.sheet.i} />}
+      </aside>
+      <div className={cx('scrim', s.dialogOpen && 'open')} id="dlgScrim" onClick={hideDialog} />
+      <div className="dialog-wrap"><div className={cx('dialog', s.dialogOpen && 'open')} id="dialog" role="dialog" aria-modal="true">
+        {dl?.kind === 'sign' && <SignDialog key={s.overlaySeq} name={dl.name} per={dl.per} />}
+        {dl?.kind === 'upload' && <UploadDialog key={s.overlaySeq} />}
+        {dl?.kind === 'plan' && <PlanDialog key={s.overlaySeq} />}
+      </div></div>
+      <div className={cx('snack', snackState.open && 'open')} id="snack" role="status">
+        <span id="snackTxt">{snackState.text}</span>
+        <button className="btn btn-text sl" id="snackUndo" hidden={!snackState.undo} onClick={() => closeSnack(true)}>Скасувати</button>
+      </div>
+    </>
+  );
+}
