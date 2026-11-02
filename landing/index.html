@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="uk">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<title>Сальдо для власників</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="Облік, який веде себе сам: первинка, банки і каси автоматично, звітність для податкової готова до підпису, усі цифри бізнесу у власника.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Caveat:wght@500;600&display=swap">
+<style>
+/* Layout: airy single-column story on warm white — huge tight headline, sources flowing into one result card, big rounded tiles for everything else. Light-only by design. */
+:root {
+  --bg: #FFFEF8;
+  --tile: #F2F1EA;
+  --surface: #FFFFFF;
+  --ink: #0E1430;
+  --muted: #555B6E;
+  --rule: #E2E1D9;
+  --blue: #2147F0;
+  --blue-ink: #FFFFFF;
+  --blue-soft: #E4E9FD;
+  --sun: #FFCF26;
+  --sun-soft: #FFF2C2;
+  --navy: #0E1430;
+  --navy-fg: #F4F5F8;
+  --navy-muted: #A7ADC2;
+  --f-sans: "Inter", system-ui, -apple-system, "Segoe UI", sans-serif;
+  --f-hand: "Caveat", "Segoe Print", "Bradley Hand", cursive;
+  --r-tile: 28px;
+  color-scheme: light;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--f-sans);
+  font-size: 17px;
+  line-height: 1.65;
+  -webkit-font-smoothing: antialiased;
+}
+.wrap {
+  max-width: 1200px; margin: 0 auto;
+  padding-left: max(20px, env(safe-area-inset-left, 0px));
+  padding-right: max(20px, env(safe-area-inset-right, 0px));
+}
+h1, h2, h3 { margin: 0; text-wrap: balance; color: var(--ink); }
+h1 { font-size: clamp(2.6rem, 6.4vw, 5.2rem); font-weight: 700; letter-spacing: -0.045em; line-height: .98; }
+h2 { font-size: clamp(1.8rem, 3.6vw, 2.9rem); font-weight: 500; letter-spacing: -0.035em; line-height: 1.08; }
+h3 { font-size: clamp(1.35rem, 2.2vw, 1.75rem); font-weight: 500; letter-spacing: -0.03em; line-height: 1.15; }
+p { margin: 0; }
+a { color: inherit; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 3px; border-radius: 8px; }
+.dot { color: var(--sun); }
+.num { font-variant-numeric: tabular-nums; }
+.hand { font-family: var(--f-hand); font-weight: 600; font-size: 1.6rem; line-height: 1; color: var(--ink); }
+
+.btn {
+  display: inline-flex; align-items: center; gap: 14px;
+  min-height: 52px; padding: 0 26px; border-radius: 999px; border: 0;
+  background: var(--blue); color: var(--blue-ink);
+  font: 500 1rem/1 var(--f-sans); text-decoration: none; cursor: pointer; white-space: nowrap;
+  transition: transform .2s ease, box-shadow .2s ease;
+}
+.btn::after { content: "→"; font-size: 1.15em; transition: transform .2s ease; }
+.btn:hover { box-shadow: 0 8px 24px rgba(33,71,240,.25); }
+.btn:hover::after { transform: translateX(4px); }
+.btn-sun { background: var(--sun); color: var(--ink); }
+.btn-sun:hover { box-shadow: 0 8px 24px rgba(255,207,38,.35); }
+.link { text-decoration: underline; text-underline-offset: 6px; text-decoration-thickness: 1.5px; font-weight: 500; }
+.link:hover { text-decoration-color: var(--blue); }
+
+/* header */
+.site-head .wrap { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-block: 22px; }
+.brand { font-size: 1.55rem; font-weight: 800; letter-spacing: -0.05em; text-decoration: none; }
+.nav { display: flex; gap: 30px; font-size: .97rem; }
+.nav a { text-decoration: none; color: var(--muted); }
+.nav a:hover { color: var(--ink); }
+.site-head .btn { min-height: 44px; padding: 0 20px; font-size: .93rem; }
+@media (max-width: 880px) { .nav { display: none; } }
+@media (max-width: 420px) { .site-head .btn { padding: 0 16px; gap: 8px; font-size: .88rem; } }
+
+/* hero */
+.hero .wrap {
+  display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, .9fr);
+  gap: 48px; align-items: center; padding-block: 56px 96px;
+}
+.hero-copy { display: flex; flex-direction: column; gap: 30px; min-width: 0; }
+.hero-lead { font-size: 1.14rem; color: var(--muted); max-width: 52ch; }
+.hero-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 18px 28px; }
+.hero-note { display: flex; align-items: center; gap: 10px; font-size: .93rem; color: var(--muted); }
+.hero-note::before { content: ""; width: 9px; height: 9px; border-radius: 50%; background: var(--sun); box-shadow: 0 0 0 3px var(--sun-soft); flex: none; }
+@media (max-width: 940px) { .hero .wrap { grid-template-columns: minmax(0, 1fr); padding-block: 28px 72px; gap: 56px; } }
+
+/* sources → result flow */
+.flow { position: relative; display: flex; flex-direction: column; align-items: center; min-width: 0; }
+.flow-lines { position: relative; width: 100%; max-width: 440px; display: grid; gap: 14px; padding: 26px 0 30px; }
+.flow-lines::before {
+  content: ""; position: absolute; left: 50%; top: 6px; bottom: 0; width: 2px; margin-left: -1px;
+  background: linear-gradient(var(--rule) 0 40%, var(--ink) 75%);
+}
+.flow-start {
+  position: absolute; left: 50%; top: 0; width: 14px; height: 14px; margin-left: -7px; border-radius: 50%;
+  background: var(--sun); box-shadow: 0 0 0 4px var(--bg);
+}
+.src { display: flex; position: relative; }
+.src.l { justify-content: flex-end; padding-right: calc(50% + 18px); }
+.src.r { justify-content: flex-start; padding-left: calc(50% + 18px); }
+.pill {
+  position: relative; display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 16px; border-radius: 999px; background: var(--bg);
+  border: 1.5px dashed #C9C8BF; color: var(--muted); font-size: .9rem; white-space: nowrap;
+}
+.pill::after { content: ""; position: absolute; top: 50%; width: 18px; height: 1.5px; background: #C9C8BF; }
+.src.l .pill::after { right: -19.5px; }
+.src.r .pill::after { left: -19.5px; }
+.pill.on { border-style: solid; border-color: var(--ink); color: var(--ink); font-weight: 500; }
+.pill.on::after { background: var(--ink); }
+.pill i { width: 18px; height: 18px; border-radius: 5px; display: grid; place-items: center; font: 700 .62rem/1 var(--f-sans); font-style: normal; flex: none; }
+@media (max-width: 520px) {
+  .src.l { padding-right: calc(50% + 12px); }
+  .src.r { padding-left: calc(50% + 12px); }
+  .pill { font-size: .76rem; padding: 6px 10px; gap: 6px; }
+  .pill::after { width: 12px; }
+  .src.l .pill::after { right: -13.5px; }
+  .src.r .pill::after { left: -13.5px; }
+  .pill i { width: 15px; height: 15px; font-size: .55rem; }
+}
+.ic-blue { background: var(--blue); color: #fff; }
+.ic-sun { background: var(--sun); color: var(--ink); }
+.ic-ink { background: var(--ink); color: #fff; }
+
+.result {
+  position: relative; width: 100%; max-width: 440px; background: var(--surface);
+  border: 1px solid var(--rule); border-radius: 18px;
+  box-shadow: 0 2px 4px rgba(14,20,48,.04), 0 18px 40px rgba(14,20,48,.10);
+}
+.result-check {
+  position: absolute; right: -12px; top: -12px; width: 32px; height: 32px; border-radius: 50%;
+  background: var(--blue); color: #fff; display: grid; place-items: center; font-size: .9rem;
+  box-shadow: 0 0 0 4px var(--bg);
+}
+.stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); border-bottom: 1px solid var(--rule); }
+.stat { padding: 14px 16px; display: flex; flex-direction: column; gap: 2px; }
+.stat + .stat { border-left: 1px solid var(--rule); }
+.stat span { font-size: .78rem; color: var(--muted); }
+.stat strong { font-size: 1.35rem; font-weight: 500; letter-spacing: -0.02em; font-variant-numeric: tabular-nums; }
+.stat.active { box-shadow: inset 0 3px 0 var(--blue); }
+.stat.active span { color: var(--blue); }
+.rows { list-style: none; margin: 0; padding: 6px 0; font-size: .84rem; }
+.rows li { display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 8px 16px; }
+.rows .d { color: var(--muted); font-variant-numeric: tabular-nums; }
+.rows .c { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.rows .s { font-variant-numeric: tabular-nums; font-weight: 500; }
+.rows li.diff { background: var(--sun-soft); }
+.rows li.ok .s { color: var(--blue); }
+.result-note { position: relative; margin-top: 22px; transform: rotate(-3deg); }
+.example { position: absolute; left: 0; top: 0; font-size: .74rem; color: var(--muted); letter-spacing: .04em; }
+
+/* sections */
+section.block .wrap { padding-block: 104px; display: flex; flex-direction: column; gap: 48px; }
+.kicker { font-size: .95rem; color: var(--muted); display: flex; align-items: center; gap: 10px; }
+.kicker::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--sun); }
+.head { display: flex; flex-direction: column; gap: 18px; max-width: 820px; }
+
+/* quote */
+.quote .wrap { padding-block: 72px 40px; display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 56px; align-items: start; }
+.quote blockquote { margin: 0; font-size: clamp(1.9rem, 4vw, 3.2rem); font-weight: 500; letter-spacing: -0.04em; line-height: 1.06; text-wrap: balance; }
+.quote blockquote .q { color: var(--blue); }
+.quote-text { display: flex; flex-direction: column; gap: 18px; color: var(--muted); padding-top: 10px; }
+@media (max-width: 880px) { .quote .wrap { grid-template-columns: minmax(0, 1fr); gap: 32px; } }
+
+/* tiles */
+.tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.tile {
+  position: relative; border-radius: var(--r-tile); background: var(--tile);
+  padding: 36px; display: flex; flex-direction: column; gap: 18px; min-width: 0;
+}
+.tile p { color: var(--muted); max-width: 46ch; }
+.tile ul { margin: 0; padding: 0 0 0 20px; display: grid; gap: 8px; color: var(--ink); }
+.tile li::marker { color: var(--muted); }
+.tile .arrow { position: absolute; right: 30px; top: 28px; font-size: 1.4rem; line-height: 1; }
+.tile-blue { background: var(--blue-soft); }
+.tile-sun { background: var(--sun-soft); }
+.tile-navy { background: var(--navy); color: var(--navy-fg); }
+.tile-navy h3 { color: var(--navy-fg); }
+.tile-navy p { color: var(--navy-muted); }
+.tile-navy ul { color: var(--navy-fg); }
+.tile-navy li::marker { color: var(--sun); }
+.tile-art { padding: 0; overflow: hidden; background: var(--navy); min-height: 260px; }
+.tile-art svg { width: 100%; height: 100%; display: block; }
+.tile .doc { font-size: .82rem; color: var(--muted); }
+@media (max-width: 760px) { .tiles { grid-template-columns: minmax(0, 1fr); } .tile { padding: 28px; } }
+
+.ill { width: 100%; max-width: 440px; aspect-ratio: 2 / 1; display: block; }
+.i-sheet { fill: var(--surface); stroke: var(--rule); stroke-width: 1.5; }
+.i-ink { fill: var(--ink); }
+.i-line { fill: var(--rule); }
+.i-mute { fill: var(--muted); }
+.i-acc { fill: var(--blue); }
+.i-accsoft { fill: var(--blue-soft); }
+.i-sun { fill: var(--sun); }
+.i-sunsoft { fill: var(--sun-soft); }
+.i-white { fill: #FFFFFF; }
+.i-stamp { fill: none; stroke: #B58A00; stroke-width: 2.5; }
+.i-t { font-family: var(--f-sans); font-weight: 700; font-size: 10px; fill: var(--ink); }
+.i-t-stamp { font-family: var(--f-sans); font-weight: 800; font-size: 12px; letter-spacing: .08em; fill: #8F6B00; }
+.i-t-inv { font-family: var(--f-sans); font-weight: 700; font-size: 9px; letter-spacing: .1em; fill: #FFFFFF; }
+.i-t-dark { font-family: var(--f-sans); font-weight: 700; font-size: 9px; fill: var(--ink); }
+
+/* steps */
+.steps { list-style: none; margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.step { border-top: 1.5px solid var(--ink); padding-top: 22px; display: flex; flex-direction: column; gap: 12px; }
+.step-n { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; background: var(--ink); color: #fff; font-size: .9rem; font-weight: 600; }
+.step:last-child .step-n { background: var(--blue); }
+.step p { color: var(--muted); }
+@media (max-width: 860px) { .steps { grid-template-columns: minmax(0, 1fr); gap: 32px; } }
+
+/* audience */
+.aud-list { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.aud { background: var(--surface); border: 1px solid var(--rule); border-radius: var(--r-tile); padding: 30px; display: flex; flex-direction: column; gap: 14px; }
+.aud p { color: var(--muted); }
+.aud .gain { margin-top: auto; align-self: flex-start; font-size: .85rem; font-weight: 500; padding: 6px 12px; border-radius: 999px; background: var(--blue-soft); color: var(--blue); }
+@media (max-width: 860px) { .aud-list { grid-template-columns: minmax(0, 1fr); } }
+
+/* principle */
+.principle {
+  background: var(--navy); color: var(--navy-fg); border-radius: 36px; padding: clamp(32px, 6vw, 72px);
+  display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 48px; position: relative; overflow: hidden;
+}
+.principle h2 { color: var(--navy-fg); font-size: clamp(2rem, 4.4vw, 3.6rem); }
+.principle-copy { display: flex; flex-direction: column; gap: 22px; position: relative; }
+.principle-copy p { color: var(--navy-muted); max-width: 44ch; }
+.principle .hand { color: var(--sun); }
+.principles { list-style: none; margin: 0; padding: 0; display: grid; position: relative; }
+.principles li { padding: 22px 0; border-bottom: 1px solid rgba(255,255,255,.12); display: flex; flex-direction: column; gap: 4px; }
+.principles li:first-child { padding-top: 4px; }
+.principles strong { font-size: 1.15rem; font-weight: 500; }
+.principles span { color: var(--navy-muted); }
+.principle-orb { position: absolute; right: -90px; bottom: -120px; width: 300px; height: 300px; border-radius: 50%; background: var(--blue); opacity: .55; }
+@media (max-width: 860px) { .principle { grid-template-columns: minmax(0, 1fr); } }
+
+/* security */
+.sec-list { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.sec { display: flex; flex-direction: column; gap: 10px; padding-top: 20px; border-top: 1px solid var(--rule); }
+.sec h3 { font-size: 1.15rem; }
+.sec p { color: var(--muted); font-size: .96rem; }
+@media (max-width: 960px) { .sec-list { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 520px) { .sec-list { grid-template-columns: minmax(0, 1fr); } }
+
+/* pricing */
+.plans { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; max-width: 940px; }
+.plan { border-radius: var(--r-tile); padding: 36px; display: flex; flex-direction: column; gap: 20px; background: var(--tile); }
+.plan.featured { background: var(--surface); border: 1.5px solid var(--ink); }
+.plan-label { font-size: .9rem; color: var(--muted); }
+.price { font-size: clamp(2.4rem, 4vw, 3.2rem); font-weight: 600; letter-spacing: -0.045em; line-height: 1; font-variant-numeric: tabular-nums; }
+.price small { font-size: 1rem; font-weight: 400; letter-spacing: 0; color: var(--muted); }
+.plan ul { margin: 0; padding: 0 0 0 20px; display: grid; gap: 8px; color: var(--muted); }
+.plan .btn { align-self: flex-start; margin-top: auto; }
+.price-note { color: var(--muted); font-size: .94rem; }
+@media (max-width: 720px) { .plans { grid-template-columns: minmax(0, 1fr); } .plan { padding: 28px; } }
+
+/* faq */
+.faq { max-width: 860px; display: flex; flex-direction: column; }
+.faq details { border-bottom: 1px solid var(--rule); }
+.faq details:first-child { border-top: 1px solid var(--rule); }
+.faq summary { list-style: none; cursor: pointer; padding: 26px 56px 26px 0; position: relative; font-size: 1.2rem; font-weight: 500; letter-spacing: -0.02em; }
+.faq summary::-webkit-details-marker { display: none; }
+.faq summary::after {
+  content: "+"; position: absolute; right: 0; top: 50%; width: 38px; height: 38px; margin-top: -19px;
+  border-radius: 50%; border: 1px solid var(--rule); display: grid; place-items: center; font-size: 1.2rem; font-weight: 400;
+  transition: transform .2s ease, background-color .2s ease;
+}
+.faq details[open] summary::after { transform: rotate(45deg); background: var(--sun); border-color: var(--sun); }
+.faq details p { padding: 0 0 26px; color: var(--muted); max-width: 64ch; }
+
+/* cta */
+.cta .wrap { padding-block: 40px 104px; }
+.cta-box {
+  background: var(--navy); color: var(--navy-fg); border-radius: 36px; padding: clamp(28px, 5vw, 64px);
+  display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); gap: 48px; align-items: start;
+}
+.cta-copy { display: flex; flex-direction: column; gap: 20px; }
+.cta-copy h2 { color: var(--navy-fg); }
+.cta-copy p { color: var(--navy-muted); }
+.cta-copy ul { margin: 0; padding: 0; list-style: none; display: grid; gap: 10px; color: var(--navy-fg); }
+.cta-copy li { display: flex; gap: 12px; align-items: baseline; }
+.cta-copy li::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: var(--sun); flex: none; transform: translateY(-2px); }
+.cta-copy .hand { color: var(--sun); transform: rotate(-3deg); align-self: flex-start; margin-top: 8px; }
+.form-card { background: var(--surface); color: var(--ink); border-radius: 24px; padding: clamp(22px, 3vw, 34px); min-width: 0; }
+form { display: grid; gap: 18px; }
+.row2 { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+.field { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.field label, .field legend { font-size: .88rem; font-weight: 500; }
+input[type="text"], input[type="number"], select {
+  width: 100%; min-height: 50px; padding: 0 16px; border-radius: 14px;
+  border: 1px solid var(--rule); background: var(--bg); color: var(--ink); font: 400 1rem var(--f-sans);
+}
+input:focus, select:focus { outline: 2px solid var(--blue); outline-offset: 0; border-color: var(--blue); }
+fieldset { border: 0; padding: 0; margin: 0; }
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 4px; }
+.chip input { position: absolute; opacity: 0; pointer-events: none; }
+.chip span {
+  display: inline-flex; align-items: center; min-height: 40px; padding: 0 16px; border-radius: 999px;
+  border: 1.5px dashed #C9C8BF; font-size: .9rem; cursor: pointer; user-select: none; color: var(--muted);
+  transition: background-color .15s ease, border-color .15s ease;
+}
+.chip input:checked + span { background: var(--ink); border: 1.5px solid var(--ink); color: #fff; }
+.chip input:focus-visible + span { outline: 2px solid var(--blue); outline-offset: 2px; }
+.form-error { color: #9A2C1F; font-size: .9rem; min-height: 1.2em; }
+.form-fine { font-size: .82rem; color: var(--muted); }
+form .btn { justify-self: start; }
+.success { display: flex; flex-direction: column; gap: 12px; padding: 12px 0; }
+.success h3 { font-size: 2rem; }
+.success p { color: var(--muted); }
+@media (max-width: 880px) { .cta-box { grid-template-columns: minmax(0, 1fr); } }
+@media (max-width: 480px) { .row2 { grid-template-columns: minmax(0, 1fr); } }
+
+.site-foot .wrap { padding-block: 32px 40px; display: flex; justify-content: space-between; gap: 16px; flex-wrap: wrap; font-size: .9rem; color: var(--muted); border-top: 1px solid var(--rule); }
+.site-foot .brand { font-size: 1.2rem; color: var(--ink); }
+
+/* owner dashboard */
+.result .dash-head { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 14px 16px 0; font-size: .8rem; color: var(--muted); }
+.todo { list-style: none; margin: 0; padding: 6px 0 8px; font-size: .86rem; }
+.todo li { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto; gap: 10px; align-items: center; padding: 9px 16px; }
+.todo li::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--blue); }
+.todo li.warn { background: var(--sun-soft); }
+.todo li.warn::before { background: #E0A800; }
+.todo .t { min-width: 0; }
+.todo .a { font-weight: 500; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.todo .a.go { color: var(--blue); }
+
+/* modules */
+.tile .mods { font-size: .82rem; color: var(--muted); }
+.tile-navy .mods { color: var(--navy-muted); }
+
+/* legal */
+.legal-cite { font-size: .9rem; color: var(--navy-muted); border-left: 2px solid var(--sun); padding-left: 14px; max-width: 46ch; }
+
+/* compare */
+.compare-wrap { overflow-x: auto; border-radius: var(--r-tile); border: 1px solid var(--rule); background: var(--surface); }
+table.compare { width: 100%; border-collapse: collapse; min-width: 640px; font-size: .98rem; }
+.compare th, .compare td { text-align: left; padding: 20px 24px; border-bottom: 1px solid var(--rule); vertical-align: top; }
+.compare tr:last-child td { border-bottom: 0; }
+.compare thead th { font-size: .9rem; font-weight: 500; color: var(--muted); }
+.compare thead th.us { color: var(--blue); }
+.compare td:first-child { font-weight: 500; width: 22%; }
+.compare td.now { color: var(--muted); }
+.compare td.us { background: var(--blue-soft); color: var(--ink); }
+.compare thead th.us { background: var(--blue-soft); }
+.note { font-size: .88rem; color: var(--muted); }
+
+/* integrations */
+.integr { display: flex; flex-wrap: wrap; gap: 10px; }
+.integr .pill { font-size: .95rem; padding: 10px 18px; }
+.integr .pill::after { display: none; }
+
+/* tariffs */
+.plans4 { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 16px; }
+.plans4 .plan { padding: 28px; gap: 16px; }
+.plans4 .price { font-size: clamp(2rem, 3vw, 2.6rem); }
+.plan .who { color: var(--muted); font-size: .95rem; min-height: 3em; }
+.plan .stage { align-self: flex-start; font-size: .78rem; font-weight: 500; padding: 5px 10px; border-radius: 999px; }
+.stage.first { background: var(--sun); color: var(--ink); }
+.stage.later { background: var(--surface); border: 1px solid var(--rule); color: var(--muted); }
+.plan.featured .stage.later { background: var(--tile); }
+.addons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
+.addon { border-top: 1.5px solid var(--ink); padding-top: 18px; display: flex; flex-direction: column; gap: 8px; }
+.addon .price-s { font-size: 1.4rem; font-weight: 600; letter-spacing: -0.03em; font-variant-numeric: tabular-nums; }
+.addon p { color: var(--muted); font-size: .96rem; }
+.offer { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; background: var(--sun); border-radius: 22px; padding: 22px 28px; }
+.offer strong { font-size: 1.15rem; font-weight: 600; letter-spacing: -0.02em; }
+.offer span { color: var(--ink); opacity: .75; }
+.offer .btn { margin-left: auto; background: var(--ink); color: #fff; }
+@media (max-width: 1060px) { .plans4 { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 760px) { .addons { grid-template-columns: minmax(0, 1fr); } .offer .btn { margin-left: 0; } }
+@media (max-width: 560px) { .plans4 { grid-template-columns: minmax(0, 1fr); } .plan .who { min-height: 0; } }
+
+/* steps x5 */
+.steps.five { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+.steps.five .step:nth-child(3) .step-n { background: var(--sun); color: var(--ink); }
+@media (max-width: 1060px) { .steps.five { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 16px; } }
+@media (max-width: 560px) { .steps.five { grid-template-columns: minmax(0, 1fr); } }
+</style>
+</head>
+<body>
+
+<header class="site-head">
+  <div class="wrap">
+    <a class="brand" href="#top">Сальдо<span class="dot">.</span></a>
+    <nav class="nav" aria-label="Розділи">
+      <a href="#modules">Що всередині</a>
+      <a href="#switch">Як перейти</a>
+      <a href="#pricing">Тарифи</a>
+      <a href="#faq">Питання</a>
+    </nav>
+    <a class="btn" href="#demo">Демо</a>
+  </div>
+</header>
+
+<main id="top">
+  <section class="hero">
+    <div class="wrap">
+      <div class="hero-copy">
+        <h1>Облік веде себе сам. Ви бачите все<span class="dot">.</span></h1>
+        <p class="hero-lead">Сальдо бере первинку, банки й каси, сам веде облік і готує звітність для податкової. Ви підписуєте своїм КЕП і щодня бачите гроші, борги та податки свого бізнесу.</p>
+        <div class="hero-actions">
+          <a class="btn" href="#demo">Показати на моїх даних</a>
+          <a class="link" href="#pricing">тарифи</a>
+        </div>
+        <p class="hero-note">Перші 50 компаній: 3 місяці безкоштовно і фіксована ціна на рік</p>
+      </div>
+
+      <div class="flow" aria-label="Приклад: дані з різних джерел потрапляють в облік і на екран власника">
+        <div class="flow-lines">
+          <span class="flow-start" aria-hidden="true"></span>
+          <div class="src l"><span class="pill"><i class="ic-sun">Ф</i>Фото накладної</span></div>
+          <div class="src r"><span class="pill"><i class="ic-blue">₴</i>Банк через API</span></div>
+          <div class="src l"><span class="pill"><i class="ic-ink">Е</i>Документи з ЕДО</span></div>
+          <div class="src r"><span class="pill on"><i class="ic-ink">К</i>Каса ПРРО</span></div>
+          <div class="src l"><span class="pill on"><i class="ic-blue">М</i>Маркетплейси</span></div>
+        </div>
+        <div class="result">
+          <span class="result-check" aria-hidden="true">✓</span>
+          <div class="dash-head"><span>ТОВ «Приклад» · листопад</span><span>приклад</span></div>
+          <div class="stats">
+            <div class="stat active"><span>На рахунках</span><strong>412 380</strong></div>
+            <div class="stat"><span>Вам винні</span><strong>96 500</strong></div>
+            <div class="stat"><span>Податки</span><strong>31 840</strong></div>
+          </div>
+          <ul class="todo">
+            <li><span class="t">Декларація з ПДВ за жовтень</span><span class="a go">підписати</span></li>
+            <li class="warn"><span class="t">ЄСВ і ПДФО за жовтень</span><span class="a">12 600 ₴</span></li>
+            <li class="warn"><span class="t">3 акти без підпису контрагента</span><span class="a">нагадати</span></li>
+            <li><span class="t">47 документів рознесено автоматично</span><span class="a">✓</span></li>
+          </ul>
+        </div>
+        <p class="hand result-note">усе видно з телефону</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="quote">
+    <div class="wrap">
+      <blockquote><span class="q">«</span>Ви платите за бухгалтерію щомісяця, а цифри свого бізнесу бачите раз на квартал.<span class="q">»</span></blockquote>
+      <div class="quote-text">
+        <p>Первинка лежить у месенджерах і поштах, облік у BAS, звітність у M.E.Doc, а всю картину тримає в голові одна людина. Щоб дізнатися, скільки ви заробили, треба питати бухгалтера.</p>
+        <p>Сальдо збирає все в одне місце. Документи потрапляють в облік самі, а звітність формується з тих самих даних, які бачите ви.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="modules" aria-labelledby="mod-h">
+    <div class="wrap">
+      <div class="head">
+        <span class="kicker">Що всередині</span>
+        <h2 id="mod-h">Від первинки до звітності в одній системі</h2>
+      </div>
+      <div class="tiles">
+        <article class="tile tile-art" aria-hidden="true">
+          <svg viewBox="0 0 520 300" preserveAspectRatio="xMidYMid slice" aria-hidden="true">
+            <rect width="520" height="300" fill="#0E1430"/>
+            <path d="M-20 300 C 40 160, 170 70, 330 92 C 450 108, 520 190, 540 300 Z" fill="#2147F0"/>
+            <circle cx="440" cy="64" r="78" fill="#FFCF26"/>
+            <circle cx="440" cy="64" r="44" fill="#0E1430"/>
+            <path d="M-10 250 C 70 200, 120 120, 210 60" fill="none" stroke="#FFFEF8" stroke-width="3" stroke-linecap="round" opacity=".85"/>
+            <path d="M-10 280 C 90 230, 150 150, 250 90" fill="none" stroke="#FFFEF8" stroke-width="1.5" stroke-linecap="round" opacity=".4"/>
+            <g stroke="#FFFEF8" stroke-width="3" stroke-linecap="round">
+              <path d="M355 150 l18 -26"/><path d="M362 166 l30 -10"/><path d="M360 182 l26 4"/>
+            </g>
+            <text x="150" y="70" fill="#FFFEF8" font-family="Caveat, cursive" font-size="34" font-weight="600" transform="rotate(-4 150 70)">все зійшлося</text>
+          </svg>
+        </article>
+        <article class="tile tile-navy">
+          <h3>Екран власника</h3>
+          <p>Головне про бізнес без дзвінків бухгалтеру.</p>
+          <ul>
+            <li>Гроші на рахунках, борги вам і ваші борги</li>
+            <li>Податки до сплати і календар звітності</li>
+            <li>Список «що треба зробити» на сьогодні</li>
+            <li>Питання звичайною мовою: «скільки заробили в жовтні?»</li>
+          </ul>
+        </article>
+        <article class="tile">
+          <h3>Первинка</h3>
+          <ul>
+            <li>Фото, PDF або документи з ЕДО</li>
+            <li>Розпізнавання реквізитів, сум і товарів</li>
+            <li>Проводки створюються автоматично</li>
+          </ul>
+          <span class="mods">Вчасно · Paperless · M.E.Doc ЕДО · пошта · Telegram</span>
+        </article>
+        <article class="tile">
+          <h3>Банки, каси і продажі</h3>
+          <ul>
+            <li>Виписки через API банків, без завантаження файлів</li>
+            <li>Чеки ПРРО і замовлення з маркетплейсів</li>
+            <li>Звірка накладеного платежу з надходженнями</li>
+          </ul>
+          <span class="mods">Приватбанк · monobank · ПУМБ · Checkbox · Prom · Rozetka · Нова пошта</span>
+        </article>
+        <article class="tile tile-sun">
+          <svg class="ill" aria-hidden="true" viewBox="0 0 280 140">
+  <rect class="i-sheet" x="78" y="14" width="124" height="126" rx="6"/>
+  <text class="i-t" x="92" y="35">ПН № 148</text>
+  <rect class="i-line" x="92" y="46" width="94" height="5" rx="2.5"/>
+  <rect class="i-line" x="92" y="57" width="72" height="5" rx="2.5"/>
+  <rect class="i-line" x="92" y="76" width="96" height="1.5"/>
+  <rect class="i-line" x="92" y="88" width="96" height="1.5"/>
+  <rect class="i-line" x="92" y="100" width="96" height="1.5"/>
+  <rect class="i-line" x="92" y="112" width="96" height="1.5"/>
+  <rect class="i-mute" x="160" y="80" width="28" height="4" rx="2" opacity=".5"/>
+  <rect class="i-mute" x="160" y="92" width="22" height="4" rx="2" opacity=".5"/>
+  <rect class="i-mute" x="160" y="104" width="26" height="4" rx="2" opacity=".5"/>
+  <g transform="rotate(-11 146 96)">
+    <rect class="i-sunsoft" x="100" y="80" width="94" height="30" rx="4" opacity=".85"/>
+    <rect class="i-stamp" x="100" y="80" width="94" height="30" rx="4"/>
+    <text class="i-t-stamp" x="147" y="99.5" text-anchor="middle">ЗУПИНЕНО</text>
+  </g>
+  <circle class="i-acc" cx="202" cy="20" r="17"/>
+  <rect class="i-white" x="194" y="19" width="16" height="12" rx="2.5"/>
+  <path d="M197.5 19v-3.5a4.5 4.5 0 0 1 9 0V19" fill="none" stroke="#FFFFFF" stroke-width="2.2"/>
+</svg>
+          <h3>ПДВ</h3>
+          <ul>
+            <li>Реєстрація податкових накладних</li>
+            <li>Контроль ризику блокування до реєстрації</li>
+            <li>Декларація з ПДВ з даних обліку</li>
+          </ul>
+        </article>
+        <article class="tile">
+          <svg class="ill" aria-hidden="true" viewBox="0 0 280 140">
+  <rect class="i-sheet" x="40" y="14" width="138" height="112" rx="8"/>
+  <path class="i-ink" d="M40 22a8 8 0 0 1 8-8h122a8 8 0 0 1 8 8v14H40z"/>
+  <text class="i-t-inv" x="52" y="29">ЖОВТЕНЬ</text>
+  <rect class="i-line" x="52" y="46" width="13" height="11" rx="2.5"/><rect class="i-line" x="69" y="46" width="13" height="11" rx="2.5"/><rect class="i-line" x="86" y="46" width="13" height="11" rx="2.5"/><rect class="i-line" x="103" y="46" width="13" height="11" rx="2.5"/><rect class="i-line" x="120" y="46" width="13" height="11" rx="2.5"/><rect class="i-line" x="137" y="46" width="13" height="11" rx="2.5"/><rect class="i-line" x="154" y="46" width="13" height="11" rx="2.5"/><rect class="i-line" x="52" y="61" width="13" height="11" rx="2.5"/><rect class="i-line" x="69" y="61" width="13" height="11" rx="2.5"/><rect class="i-line" x="86" y="61" width="13" height="11" rx="2.5"/><rect class="i-line" x="103" y="61" width="13" height="11" rx="2.5"/><rect class="i-line" x="120" y="61" width="13" height="11" rx="2.5"/><rect class="i-line" x="137" y="61" width="13" height="11" rx="2.5"/><rect class="i-line" x="154" y="61" width="13" height="11" rx="2.5"/><rect class="i-line" x="52" y="76" width="13" height="11" rx="2.5"/><rect class="i-line" x="69" y="76" width="13" height="11" rx="2.5"/><rect class="i-line" x="86" y="76" width="13" height="11" rx="2.5"/><rect class="i-line" x="103" y="76" width="13" height="11" rx="2.5"/><rect class="i-line" x="120" y="76" width="13" height="11" rx="2.5"/><rect class="i-line" x="137" y="76" width="13" height="11" rx="2.5"/><rect class="i-line" x="154" y="76" width="13" height="11" rx="2.5"/><rect class="i-line" x="52" y="91" width="13" height="11" rx="2.5"/><rect class="i-line" x="69" y="91" width="13" height="11" rx="2.5"/><rect class="i-accsoft" x="86" y="91" width="13" height="11" rx="2.5"/><rect class="i-accsoft" x="103" y="91" width="13" height="11" rx="2.5"/><rect class="i-accsoft" x="120" y="91" width="13" height="11" rx="2.5"/><rect class="i-accsoft" x="137" y="91" width="13" height="11" rx="2.5"/><rect class="i-sun" x="153" y="90" width="15" height="13" rx="3"/><text class="i-t-dark" x="160.5" y="99.5" text-anchor="middle">31</text>
+  <rect class="i-sheet" x="196" y="40" width="58" height="76" rx="5"/>
+  <rect class="i-sheet" x="190" y="34" width="58" height="76" rx="5"/>
+  <rect class="i-sheet" x="184" y="28" width="58" height="76" rx="5"/>
+  <text class="i-t" x="193" y="44">Акт</text>
+  <rect class="i-line" x="193" y="52" width="40" height="4" rx="2"/>
+  <rect class="i-line" x="193" y="61" width="32" height="4" rx="2"/>
+  <rect class="i-line" x="193" y="70" width="38" height="4" rx="2"/>
+  <rect class="i-line" x="193" y="79" width="26" height="4" rx="2"/>
+  <circle class="i-acc" cx="236" cy="98" r="11"/>
+  <path d="M231 98l3.5 3.5 6.5-7" fill="none" stroke="#FFFFFF" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+          <h3>Звітність</h3>
+          <ul>
+            <li>Декларація платника єдиного податку</li>
+            <li>Об'єднана звітність з ПДФО і ЄСВ</li>
+            <li>Фінансова звітність малого підприємства</li>
+          </ul>
+          <span class="mods">Формує система, підписуєте ви своїм КЕП</span>
+        </article>
+        <article class="tile">
+          <h3>Облік</h3>
+          <ul>
+            <li>Товари і склад</li>
+            <li>Основні засоби</li>
+            <li>Зарплата з ЄСВ, ПДФО і військовим збором</li>
+          </ul>
+        </article>
+        <article class="tile tile-blue">
+          <h3>Бухгалтер-контролер</h3>
+          <p>Якщо хочете підстраховку, підключіть свого бухгалтера або нашого. Він перевіряє місяць перед здачею звітності, а не вносить документи вручну.</p>
+        </article>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="legal-h">
+    <div class="wrap">
+      <div class="principle">
+        <span class="principle-orb" aria-hidden="true"></span>
+        <div class="principle-copy">
+          <h2 id="legal-h">Вести облік самому законно<span class="dot">.</span></h2>
+          <p>Керівник підприємства може особисто вести бухгалтерський облік. ФОП веде облік самостійно. Сальдо робить це простим: система веде облік, а рішення і підпис лишаються за вами.</p>
+          <p class="legal-cite">Стаття 8 Закону «Про бухгалтерський облік та фінансову звітність в Україні». Виняток: підприємства, що становлять суспільний інтерес.</p>
+        </div>
+        <ul class="principles">
+          <li><strong>Звітність підписуєте ви</strong><span>Сальдо формує звіти, а відправляєте їх ви своїм КЕП.</span></li>
+          <li><strong>Кожну цифру можна перевірити</strong><span>Біля кожної суми видно документ, з якого вона взялася.</span></li>
+          <li><strong>Бухгалтер, якщо потрібен</strong><span>Його можна підключити як контролера, а не як людину, що вносить документи.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="cmp-h">
+    <div class="wrap">
+      <div class="head">
+        <span class="kicker">Порівняння</span>
+        <h2 id="cmp-h">Як зараз і як із Сальдо</h2>
+      </div>
+      <div class="compare-wrap">
+        <table class="compare">
+          <thead>
+            <tr><th scope="col"></th><th scope="col">Зараз</th><th scope="col" class="us">Із Сальдо</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>Витрати на місяць</td><td class="now">Бухгалтер або аутсорс, плюс ліцензії BAS і M.E.Doc</td><td class="us">Від 490 ₴ для ФОП до 4 990 ₴ для ТОВ</td></tr>
+            <tr><td>Первинка</td><td class="now">Збирається з месенджерів і вноситься вручну</td><td class="us">Розпізнається і проводиться автоматично</td></tr>
+            <tr><td>Цифри бізнесу</td><td class="now">Коли бухгалтер підготує</td><td class="us">Щодня, з телефону</td></tr>
+            <tr><td>Звітність</td><td class="now">Готує бухгалтер, ви бачите лише результат</td><td class="us">Формується з обліку, який ви бачите. Підписуєте ви</td></tr>
+            <tr><td>Хто контролює</td><td class="now">Бухгалтер</td><td class="us">Ви, і бухгалтер, якщо хочете</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="switch" aria-labelledby="sw-h">
+    <div class="wrap">
+      <div class="head">
+        <span class="kicker">Як перейти</span>
+        <h2 id="sw-h">П'ять кроків без ризику для звітності</h2>
+      </div>
+      <ol class="steps five">
+        <li class="step"><span class="step-n">1</span><h3>Демо на ваших даних</h3><p>20 хвилин. Беремо банківську виписку за місяць і показуємо облік і податки до сплати.</p></li>
+        <li class="step"><span class="step-n">2</span><h3>Підключення за день</h3><p>Банки, ЕДО, каси і маркетплейси. Переносимо залишки з BAS.</p></li>
+        <li class="step"><span class="step-n">3</span><h3>Паралельний місяць</h3><p>Ваш бухгалтер працює як звичайно, Сальдо поруч. Наприкінці порівнюємо звітність.</p></li>
+        <li class="step"><span class="step-n">4</span><h3>Перехід</h3><p>Звітність формує Сальдо. Ви або ваш бухгалтер перевіряєте і підписуєте.</p></li>
+        <li class="step"><span class="step-n">5</span><h3>Щодня</h3><p>Документи потрапляють в облік самі, а ви бачите цифри без запитів.</p></li>
+      </ol>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="int-h">
+    <div class="wrap">
+      <div class="head">
+        <span class="kicker">Підключення</span>
+        <h2 id="int-h">Сервіси, якими ви вже користуєтесь</h2>
+      </div>
+      <div class="integr">
+        <span class="pill on"><i class="ic-blue">₴</i>Приватбанк</span>
+        <span class="pill on"><i class="ic-ink">₴</i>monobank</span>
+        <span class="pill"><i class="ic-blue">₴</i>ПУМБ</span>
+        <span class="pill on"><i class="ic-sun">Е</i>Вчасно</span>
+        <span class="pill"><i class="ic-sun">Е</i>Paperless</span>
+        <span class="pill"><i class="ic-ink">M</i>M.E.Doc</span>
+        <span class="pill on"><i class="ic-ink">К</i>Checkbox</span>
+        <span class="pill"><i class="ic-blue">P</i>Prom</span>
+        <span class="pill"><i class="ic-blue">R</i>Rozetka</span>
+        <span class="pill"><i class="ic-sun">НП</i>Нова пошта</span>
+        <span class="pill"><i class="ic-ink">B</i>Перенесення з BAS</span>
+      </div>
+      <p class="note">Над цими підключеннями ми працюємо. Черговість узгоджуємо з першими клієнтами: що потрібно вам, те підключаємо першим.</p>
+    </div>
+  </section>
+
+  <section class="block" id="pricing" aria-labelledby="price-h">
+    <div class="wrap">
+      <div class="head">
+        <span class="kicker">Тарифи</span>
+        <h2 id="price-h">Ціна залежить від форми бізнесу, а не від кількості людей</h2>
+      </div>
+      <div class="plans4">
+        <article class="plan">
+          <span class="stage first">Запускаємо першим</span>
+          <h3>ФОП</h3>
+          <p class="who">2–3 група без ПДВ</p>
+          <div class="price">490 ₴ <small>/ міс</small></div>
+          <ul>
+            <li>Банки, каси, маркетплейси</li>
+            <li>Книга обліку доходів</li>
+            <li>Декларація єдиного податку і ЄСВ</li>
+          </ul>
+        </article>
+        <article class="plan featured">
+          <span class="stage first">Запускаємо першим</span>
+          <h3>Єдинщик з ПДВ</h3>
+          <p class="who">ФОП або ТОВ 3 групи, платник ПДВ</p>
+          <div class="price">1 490 ₴ <small>/ міс</small></div>
+          <ul>
+            <li>Усе з тарифу ФОП</li>
+            <li>Первинка і ЕДО</li>
+            <li>Податкові накладні і декларація з ПДВ</li>
+          </ul>
+        </article>
+        <article class="plan">
+          <span class="stage later">Поетапно</span>
+          <h3>ТОВ</h3>
+          <p class="who">Загальна система з ПДВ, до 300 документів на місяць</p>
+          <div class="price">2 990 ₴ <small>/ міс</small></div>
+          <ul>
+            <li>Повний облік і план рахунків</li>
+            <li>ПДВ і податок на прибуток</li>
+            <li>Фінансова звітність</li>
+          </ul>
+        </article>
+        <article class="plan">
+          <span class="stage later">Поетапно</span>
+          <h3>ТОВ+</h3>
+          <p class="who">До 1 000 документів, склад і зарплата</p>
+          <div class="price">4 990 ₴ <small>/ міс</small></div>
+          <ul>
+            <li>Усе з тарифу ТОВ</li>
+            <li>Склад і основні засоби</li>
+            <li>Зарплата і об'єднана звітність</li>
+          </ul>
+        </article>
+      </div>
+      <div class="addons">
+        <div class="addon"><h3>Підключення</h3><span class="price-s">0 ₴ / від 3 000 ₴</span><p>Для ФОП безкоштовно. Для ТОВ разово: перенесення залишків і даних з BAS.</p></div>
+        <div class="addon"><h3>Бухгалтер на підстраховці</h3><span class="price-s">від 2 000 ₴ / міс</span><p>Наш бухгалтер перевіряє місяць перед здачею звітності.</p></div>
+        <div class="addon"><h3>Більше 1 000 документів</h3><span class="price-s">за домовленістю</span><p>Рахуємо під ваш обсяг і кількість компаній.</p></div>
+      </div>
+      <div class="offer">
+        <strong>Перші 50 компаній</strong>
+        <span>3 місяці безкоштовно і фіксована ціна на рік</span>
+        <a class="btn" href="#demo">Забронювати місце</a>
+      </div>
+      <p class="note">Для ТОВ на загальній системі модулі запускаємо поетапно. На старті такі компанії працюють з бухгалтером-контролером.</p>
+    </div>
+  </section>
+
+  <section class="block" aria-labelledby="sec-h">
+    <div class="wrap">
+      <div class="head">
+        <span class="kicker">Дані</span>
+        <h2 id="sec-h">Ваші дані лишаються вашими</h2>
+      </div>
+      <div class="sec-list">
+        <div class="sec"><h3>Шифрування</h3><p>Дані шифруються під час передачі та зберігання.</p></div>
+        <div class="sec"><h3>Без навчання на ваших даних</h3><p>Ваші документи не використовуються для навчання моделей.</p></div>
+        <div class="sec"><h3>Без російського ПЗ</h3><p>Жодного російського програмного забезпечення в ланцюжку обробки.</p></div>
+        <div class="sec"><h3>Вивантаження будь-коли</h3><p>Усі дані можна вивантажити і піти. Без прив'язки.</p></div>
+      </div>
+    </div>
+  </section>
+
+  <section class="block" id="faq" aria-labelledby="faq-h">
+    <div class="wrap">
+      <div class="head">
+        <span class="kicker">Питання</span>
+        <h2 id="faq-h">Що зазвичай питають</h2>
+      </div>
+      <div class="faq">
+        <details>
+          <summary>Чи можна вести облік без бухгалтера?</summary>
+          <p>Так. Керівник підприємства може особисто вести бухгалтерський облік, крім підприємств, що становлять суспільний інтерес. ФОП веде облік самостійно. Якщо хочете підстраховку, підключіть бухгалтера-контролера.</p>
+        </details>
+        <details>
+          <summary>Хто відповідає за звітність?</summary>
+          <p>Той, хто її підписує: ви або ваш бухгалтер. Тому кожна цифра у звіті веде до документа, з якого вона взялася, а перший місяць ми проходимо паралельно з вашим поточним обліком.</p>
+        </details>
+        <details>
+          <summary>Що буде з даними в BAS?</summary>
+          <p>Переносимо залишки і довідники з BAS під час підключення. Історію можна залишити в BAS для довідки.</p>
+        </details>
+        <details>
+          <summary>Чи вміє Сальдо ПДВ, склад і зарплату?</summary>
+          <p>Для ФОП і єдинщиків запускаємо повний цикл першими. Для ТОВ на загальній системі модулі запускаємо поетапно, і на старті такі компанії працюють з бухгалтером-контролером.</p>
+        </details>
+        <details>
+          <summary>А якщо система помилиться?</summary>
+          <p>Неоднозначні документи Сальдо не вгадує, а позначає і просить вашого рішення. Перед відправкою звітності її перевіряєте ви або бухгалтер-контролер.</p>
+        </details>
+      </div>
+    </div>
+  </section>
+
+  <section class="cta" id="demo" aria-labelledby="cta-h">
+    <div class="wrap">
+      <div class="cta-box">
+        <div class="cta-copy">
+          <h2 id="cta-h">Покажемо на ваших даних<span class="dot">.</span></h2>
+          <p>20 хвилин демо: беремо виписку за місяць і показуємо облік і податки до сплати. Зв'яжемося протягом робочого дня.</p>
+          <ul>
+            <li>Демо на ваших реальних даних</li>
+            <li>Паралельний місяць без ризику</li>
+            <li>Перші 50 компаній: 3 місяці безкоштовно</li>
+          </ul>
+          <span class="hand">без зобов'язань</span>
+        </div>
+
+        <div class="form-card">
+          <form id="pilot-form" novalidate>
+            <div class="row2">
+              <div class="field">
+                <label for="f-name">Ім'я</label>
+                <input type="text" id="f-name" name="name" autocomplete="name" placeholder="Андрій">
+              </div>
+              <div class="field">
+                <label for="f-contact">Телефон або Telegram</label>
+                <input type="text" id="f-contact" name="contact" autocomplete="tel" placeholder="+380 або @нік">
+              </div>
+            </div>
+            <div class="row2">
+              <div class="field">
+                <label for="f-role">Форма бізнесу</label>
+                <select id="f-role" name="role">
+                  <option value="">Оберіть</option>
+                  <option>ФОП 2–3 група</option>
+                  <option>ФОП або ТОВ з ПДВ, єдиний податок</option>
+                  <option>ТОВ, загальна система</option>
+                </select>
+              </div>
+              <div class="field">
+                <label for="f-cost">Скільки зараз платите за бухгалтерію</label>
+                <select id="f-cost" name="cost">
+                  <option value="">Оберіть</option>
+                  <option>До 3 000 ₴ на місяць</option>
+                  <option>3 000–8 000 ₴</option>
+                  <option>8 000–15 000 ₴</option>
+                  <option>Більше 15 000 ₴</option>
+                  <option>Веду сам</option>
+                </select>
+              </div>
+            </div>
+            <fieldset class="field">
+              <legend>Що хочете бачити самі</legend>
+              <div class="chips">
+                <label class="chip"><input type="checkbox" id="p-money" name="want" value="Гроші"><span>Гроші</span></label>
+                <label class="chip"><input type="checkbox" id="p-tax" name="want" value="Податки"><span>Податки</span></label>
+                <label class="chip"><input type="checkbox" id="p-debt" name="want" value="Борги"><span>Борги</span></label>
+                <label class="chip"><input type="checkbox" id="p-rep" name="want" value="Звітність"><span>Звітність</span></label>
+                <label class="chip"><input type="checkbox" id="p-stock" name="want" value="Склад"><span>Склад</span></label>
+              </div>
+            </fieldset>
+            <p class="form-error" id="form-error" role="alert"></p>
+            <button class="btn" type="submit">Записатися на демо</button>
+            <p class="form-fine">Використаємо контакти лише для зв'язку щодо демо.</p>
+          </form>
+
+          <div class="success" id="form-success" hidden>
+            <span class="hand">дякуємо!</span>
+            <h3>Заявку прийнято</h3>
+            <p>Зв'яжемося з вами протягом робочого дня, щоб домовитися про демо.</p>
+            <p class="form-fine">Прототип сторінки: форма ще не підключена до сервера.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+</main>
+
+<footer class="site-foot">
+  <div class="wrap">
+    <span class="brand">Сальдо<span class="dot">.</span></span>
+    <span>Облік для власників бізнесу · Україна · © 2026</span>
+  </div>
+</footer>
+
+<script>
+(function () {
+  var form = document.getElementById('pilot-form');
+  var err = document.getElementById('form-error');
+  var ok = document.getElementById('form-success');
+  form.addEventListener('submit', function (e) {
+    e.preventDefault();
+    var name = form.elements.name.value.trim();
+    var contact = form.elements.contact.value.trim();
+    if (!name) { err.textContent = 'Вкажіть, як до вас звертатися.'; form.elements.name.focus(); return; }
+    if (contact.length < 4) { err.textContent = 'Залиште телефон або нік у Telegram, щоб ми могли зв’язатися.'; form.elements.contact.focus(); return; }
+    err.textContent = '';
+    form.hidden = true;
+    ok.hidden = false;
+  });
+})();
+</script>
+</body>
+</html>
