@@ -13,7 +13,7 @@ export type State = {
   docTab: string; structTab: string;
   docs: typeof DOCS; bank: typeof BANK; questions: typeof QUESTIONS; reports: typeof REPORTS; close: typeof CLOSE;
   history: HistoryItem[];
-  biz: { b: Biz; f: Form } | null;
+  biz: { b: Biz; f: Form; group: string } | null;
   chat: Msg[];
   /** лічильник переходів: на нього реагує анімація появи сторінки */
   nav: number;

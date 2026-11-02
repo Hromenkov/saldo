@@ -21,7 +21,7 @@ function Drawer() {
   const total = 51, done = s.docs.filter(d => d.st === 'ok').length + 43;
   const pct = Math.round(done / total * 100);
   const setRole = (r: 'owner' | 'acc') => { upd(d => { d.role = r; }); go(r === 'owner' ? 'overview' : 'docs'); };
-  const meta = s.biz ? `${s.biz.b.t} · ${s.biz.f.t}` : 'Кав’ярня · ТОВ, загальна система';
+  const meta = s.biz ? `${s.biz.b.t} · ${s.biz.group}` : 'Кав’ярня · ТОВ, загальна система';
   return (
     <nav className={cx('drawer', s.drawerOpen && 'open')} id="drawer" aria-label="Навігація">
       <button className="fab" id="uploadBtn" onClick={() => openDialog({ kind: 'upload' })}><Ms>add</Ms>Завантажити</button>

@@ -106,7 +106,7 @@ export const FORMS: Form[] = [
   { k: 'tov3', t: 'ТОВ, 3 група', s: 'Єдиний податок, з ПДВ або без', vat: true, fop: false },
   { k: 'tov', t: 'ТОВ, загальна система', s: 'Податок на прибуток і ПДВ', vat: true, fop: false }
 ];
-export type Item = { n: string; m: string; main?: boolean };
+export type Item = { n: string; m: string; main?: boolean; form?: string };
 export type ListKey = 'entities' | 'points' | 'depts' | 'stores';
 export type MultiKey = 'channels' | 'purchase' | 'pay' | 'analytics';
 export type SingleKey = 'premises' | 'chief' | 'approver' | 'balances';
@@ -114,14 +114,14 @@ export type CountKey = 'staff' | 'contractors' | 'assets';
 export type ToggleKey = 'prodOwn' | 'prodTech' | 'prodSemi' | 'timesheet';
 export type FieldKey = 'osLimit' | 'director' | 'start';
 export type Onboarding = {
-  type: string; form: string;
+  type: string;
   conns: Record<string, boolean>;
 } & Record<ListKey, Item[]> & Record<MultiKey, string[]> & Record<SingleKey, string>
   & Record<CountKey, number> & Record<ToggleKey, boolean> & Record<FieldKey, string>;
 
 export const OB_DEFAULT: Onboarding = {
-  type: 'cafe', form: 'tov',
-  entities: [{ n: 'ТОВ «Приклад»', m: 'Основна компанія · загальна система, платник ПДВ', main: true }, { n: 'ФОП Петренко А.', m: '3 група без ПДВ · кейтеринг' }],
+  type: 'cafe',
+  entities: [{ n: 'ТОВ «Приклад»', m: 'Основна компанія', main: true, form: 'tov' }, { n: 'ФОП Петренко А.', m: 'Кейтеринг', form: 'fop3' }],
   points: [{ n: 'Точка «Поділ»', m: 'Кав’ярня · вул. Сагайдачного, 12 · ПРРО Checkbox' }, { n: 'Точка «Оболонь»', m: 'Кав’ярня · Оболонська набережна, 7 · ПРРО Checkbox' }],
   depts: [{ n: 'Кухня-заготівельний цех', m: 'Випічка й напівфабрикати для точок' }, { n: 'Офіс', m: 'Адміністрація і закупівлі' }],
   stores: [{ n: 'Центральний склад', m: 'Приймає товар від постачальників' }, { n: 'Склад точки «Поділ»', m: 'Бар і вітрина' }, { n: 'Склад точки «Оболонь»', m: 'Бар і вітрина' }],
@@ -198,7 +198,9 @@ export const CONN: { g: string; s: string; items: ConnItem[] }[] = [
   { g: 'Канали для первинки', s: 'Куди надсилати фото й файли документів', items: [
     ['tg', 'TG', 'Telegram-бот', 'Фото накладних і чеків'], ['mail', '@', 'Пошта docs@saldo.ua', 'Пересилання рахунків і актів'], ['gdrive', 'GD', 'Google Диск', 'Папка з документами'] ] }
 ];
-export const ONB_STEPS = ['Тип бізнесу', 'Форма й оподаткування', 'Компанії й точки', 'Продажі й закупівлі', 'Люди й майно', 'Облік і відповідальні', 'Підключення', 'Готово'];
+export const ONB_STEPS = ['Тип бізнесу', 'Компанії й оподаткування', 'Точки й склади', 'Продажі й закупівлі', 'Люди й майно', 'Облік і відповідальні', 'Підключення', 'Готово'];
+
+export const isFop = (form?: string) => !!form && form.startsWith('fop');
 
 /* Каталог типових операцій (кав’ярня) */
 export type Op = [string, string, string, [string, string, string][], string, 'auto' | 'confirm'];
