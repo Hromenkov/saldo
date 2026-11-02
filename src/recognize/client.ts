@@ -6,7 +6,7 @@ import { ACCOUNTS } from './accounts';
 import type { RecognizeRequest, RecognizeResponse } from './schema';
 
 const MAX_BYTES = 4.5 * 1024 * 1024; // запас до ліміту тіла запиту Netlify (6 МБ після base64)
-const IMG_SIDE = 2000;
+const IMG_SIDE = 2400; // рукописні цифри потребують більшої роздільності
 
 const toB64 = (buf: ArrayBuffer) => {
   let s = ''; const b = new Uint8Array(buf);
@@ -14,7 +14,7 @@ const toB64 = (buf: ArrayBuffer) => {
   return btoa(s);
 };
 
-/** Фото з телефона важать 5–10 МБ: зменшуємо до 2000 px, цього вистачає для читання цифр. */
+/** Фото з телефона важать 5–10 МБ: зменшуємо до 2400 px, цього вистачає для читання цифр. */
 async function shrinkImage(file: File): Promise<Blob> {
   const bmp = await createImageBitmap(file);
   const k = Math.min(1, IMG_SIDE / Math.max(bmp.width, bmp.height));
@@ -51,6 +51,7 @@ export async function recognizeFile(file: File, company: string, existing: Doc[]
   const rule = ruleFor(edrpou);
   const acc = rule && (ACCOUNTS as readonly string[]).includes(rule) ? rule : r.account;
   const checks = runChecks(r, existing);
+  if (r.handwritten) checks.push({ ok: false, t: 'Заповнено від руки: звірте цифри з оригіналом перед проведенням' });
   if (rule) checks.unshift({ ok: true, t: `Рахунок ${acc.split(' ')[0]} за вашим правилом для цього контрагента` });
   const conf = Math.max(0, Math.min(100, Math.round(r.confidence)));
   return {

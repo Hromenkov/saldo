@@ -27,6 +27,7 @@ export const Recognized = z.object({
   currency: z.string().describe('Валюта, зазвичай UAH'),
   account: z.enum(ACCOUNTS).describe('Найімовірніший рахунок обліку для витрат або доходу за цим документом'),
   account_reason: z.string().describe('Одне коротке речення українською, чому саме цей рахунок'),
+  handwritten: z.boolean().describe('true, якщо номер, дата, суми або кількості на документі вписані від руки'),
   confidence: z.number().describe('Впевненість у розпізнаванні від 0 до 100'),
   uncertain: z.array(z.string()).describe('Назви полів, які погано читаються, відсутні або сумнівні'),
   note: z.string().nullable().describe('Коротке зауваження українською для бухгалтера, якщо щось незвичне; інакше null')
