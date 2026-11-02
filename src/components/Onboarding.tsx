@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import { produce } from 'immer';
 import {
-  ADD_DEFAULT, ALIAS, BIZ, CHANNELS, CONN, FORMS, OB_DEFAULT, ONB_STEPS, OPTS,
+  ADD_DEFAULT, ALIAS, BIZ, CHANNELS, CONN, FORMS, isFop, OB_DEFAULT, ONB_STEPS, OPTS,
   type CountKey, type FieldKey, type ListKey, type MultiKey, type Onboarding as Ob, type SingleKey, type ToggleKey
 } from '../data';
 import { useApp } from '../store';
@@ -27,10 +27,15 @@ export function Onboarding() {
   useEffect(() => { if (s.onbOpen) { setStep(0); setQ(''); } }, [s.onbOpen]);
   useEffect(() => { if (body.current) body.current.scrollTop = 0; }, [step]);
 
-  const b = BIZ.find(x => x.k === ob.type)!, f = FORMS.find(x => x.k === ob.form)!;
+  const b = BIZ.find(x => x.k === ob.type)!;
+  // головна компанія визначає систему за замовчуванням; кожна компанія групи має свою
+  const mainEnt = ob.entities.find(e => e.main) || ob.entities[0];
+  const f = FORMS.find(x => x.k === mainEnt?.form) || FORMS[FORMS.length - 1];
+  const tovN = ob.entities.filter(e => !isFop(e.form)).length, fopN = ob.entities.length - tovN;
+  const groupLabel = [tovN && `${tovN} ТОВ`, fopN && `${fopN} ФОП`].filter(Boolean).join(' і ');
   const close = () => upd(d => { d.onbOpen = false; });
   const finish = () => {
-    upd(d => { d.biz = { b, f }; d.onbOpen = false; });
+    upd(d => { d.biz = { b, f, group: groupLabel }; d.onbOpen = false; });
     try { sessionStorage.setItem('saldo-onb', '1'); } catch { /* приватний режим */ }
     go(s.role === 'owner' ? 'overview' : 'ops');
     snack(`Облік налаштовано: ${b.t.toLowerCase()}, ${b.ops} типових операцій`);
@@ -96,18 +101,52 @@ export function Onboarding() {
         </button>
       ))}</div></>;
   } else if (step === 1) {
-    html = <>{head('Форма бізнесу й оподаткування', 'Визначає, чи потрібна подвійна запис, план рахунків, ПДВ і які звіти подавати.')}
-      <div className="pick-grid" role="radiogroup">{FORMS.map(x => (
-        <button key={x.k} className="pick sl" role="radio" aria-checked={ob.form === x.k} onClick={() => set(d => { d.form = x.k; })}>
-          <Ms className="p-ck">check_circle</Ms><span className="title-m">{x.t}</span><span className="body-s muted">{x.s}</span>
-          <span className="p-meta">{x.vat && <span className="status st-new">ПДВ</span>}{x.fop ? <span className="status st-mute">Книга обліку доходів</span> : <span className="status st-mute">Подвійний запис</span>}</span>
-        </button>
-      ))}</div></>;
+    const addEnt = (fop: boolean) => set(d => {
+      const k = d.entities.filter(e => isFop(e.form) === fop).length + 1;
+      d.entities.push(fop ? { n: `ФОП ${k}`, m: 'Новий ФОП', form: 'fop3' } : { n: `ТОВ «Компанія ${k}»`, m: 'Нова компанія', form: 'tov' });
+    });
+    html = <>{head('Компанії й оподаткування', 'Додайте всі ТОВ і ФОП, через які працює бізнес. Кожна компанія веде свій облік і звітність за своєю системою оподаткування, а управлінка показує їх разом.')}
+      <div className="conn-groups">
+        <Sec t="Компанії групи" s={groupLabel || 'Додайте хоча б одну компанію'}><div className="set-list">
+          {ob.entities.map((e, i) => {
+            const fop = isFop(e.form), fm = FORMS.find(x => x.k === e.form);
+            return (
+              <div className="set-row opt-row" key={i}><Lead ic={fop ? 'person' : 'domain'} />
+                <span className="txt">
+                  <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+                    <div className="tf" style={{ '--tf-bg': 'var(--md-surface-container-lowest)', flex: '1 1 240px', maxWidth: 420 } as React.CSSProperties}>
+                      <input id={'ent-' + i} placeholder=" " value={e.n} onChange={ev => { const v = ev.target.value; set(d => { d.entities[i].n = v; }); }} />
+                      <label htmlFor={'ent-' + i}>{fop ? 'ПІБ ФОП' : 'Назва ТОВ'}</label>
+                    </div>
+                    {e.main && <span className="status st-new">Основна</span>}
+                  </div>
+                  <div className="body-s muted" style={{ marginTop: 8 }}>{fm ? fm.s : ''}{fop ? ' · книга обліку доходів, контроль ліміту єдиного податку' : ' · план рахунків, подвійний запис'}</div>
+                  <div style={{ marginTop: 10 }}><div className="chips" role="radiogroup">{FORMS.filter(x => x.fop === fop).map(x => {
+                    const on = e.form === x.k;
+                    return <button key={x.k} className="chip sl" role="radio" aria-checked={on} aria-pressed={on} onClick={() => set(d => { d.entities[i].form = x.k; })}>{on && <Ms>check</Ms>}{x.t}</button>;
+                  })}</div></div>
+                </span>
+                {!e.main && <button className="icon-btn sl" aria-label="Видалити" onClick={() => set(d => { d.entities.splice(i, 1); })}><Ms>delete</Ms></button>}
+              </div>
+            );
+          })}
+          <div className="set-row opt-row" style={{ minHeight: 56, alignItems: 'center', gap: 8 }}>
+            <button className="btn btn-text sl" onClick={() => addEnt(false)}><Ms>add</Ms>Додати ТОВ</button>
+            <button className="btn btn-text sl" onClick={() => addEnt(true)}><Ms>add</Ms>Додати ФОП</button>
+          </div>
+        </div></Sec>
+        <Sec t="Як Сальдо веде групу" s="Кілька компаній в одному обліку"><div className="set-list"><div className="set-row"><ul className="checks body-m" style={{ margin: 0 }}>
+          <li><Ms>check_circle</Ms>Кожна компанія має окремий облік, звітність і свій КЕП</li>
+          <li><Ms>check_circle</Ms>ТОВ ведуть план рахунків і подвійний запис, платники ПДВ подають декларації з ПДВ</li>
+          <li><Ms>check_circle</Ms>ФОП ведуть книгу обліку доходів, система стежить за лімітом доходу єдиного податку</li>
+          <li><Ms>check_circle</Ms>Розрахунки між компаніями групи позначаються як внутрішні й не завищують виручку</li>
+          <li><Ms>check_circle</Ms>Управлінка показує прибуток усієї групи разом і по кожній компанії</li>
+        </ul></div></div></Sec>
+      </div></>;
   } else if (step === 2) {
     const showStores = !['services', 'it'].includes(b.k), showProd = ['cafe', 'production', 'construction', 'hotel', 'food'].includes(b.k);
-    html = <>{head('Компанії, точки й склади', 'Це основа аналітики: кожна компанія веде свій облік, кожна точка й склад мають власні залишки, виручку й витрати.')}
+    html = <>{head('Точки, підрозділи й склади', 'Це основа аналітики: кожна точка й склад мають власні залишки, виручку й витрати.')}
       <div className="conn-groups">
-        <Sec t="Компанії групи" s="Окремі платники податків, які ви хочете бачити разом">{listEd('entities', 'domain', 'Додати компанію')}</Sec>
         <Sec t="Точки продажу" s="Кав’ярні, магазини, кіоски. До кожної прив’язується каса ПРРО">{listEd('points', 'storefront', 'Додати точку')}</Sec>
         <Sec t="Підрозділи" s="Цехи, кухні, офіс: місця виникнення витрат">{listEd('depts', 'account_tree', 'Додати підрозділ')}</Sec>
         {showStores && <Sec t="Склади й місця зберігання" s="Між ними товар рухається документами переміщення">{listEd('stores', 'warehouse', 'Додати склад')}</Sec>}
@@ -175,8 +214,9 @@ export function Onboarding() {
     const conns = Object.values(ob.conns).filter(Boolean).length;
     const n = (k: number, a: string, b2: string, c: string) => plural(k, a, b2, c);
     const items: [string, string, string][] = [
-      f.fop ? ['menu_book', 'Книга обліку доходів', 'Подвійний запис для ФОП не потрібен'] : ['account_tree', 'План рахунків за Інструкцією 291', 'Робочі рахунки й субрахунки під ваш бізнес'],
-      ['domain', `${ob.entities.length} ${n(ob.entities.length, 'компанія', 'компанії', 'компаній')} групи`, ob.entities.map(e => e.n).join(', ')],
+      ['domain', `${ob.entities.length} ${n(ob.entities.length, 'компанія', 'компанії', 'компаній')} групи: ${groupLabel}`, ob.entities.map(e => e.n).join(', ')],
+      ...(tovN ? [['account_tree', 'План рахунків за Інструкцією 291', `Для ${tovN} ТОВ: подвійний запис${ob.entities.some(e => !isFop(e.form) && FORMS.find(x => x.k === e.form)?.vat) ? ', ПДВ' : ''}`] as [string, string, string]] : []),
+      ...(fopN ? [['menu_book', 'Книга обліку доходів', `Для ${fopN} ФОП: контроль ліміту єдиного податку`] as [string, string, string]] : []),
       ['library_books', `${b.ops} типових операцій`, `Каталог «${b.t}»: від закупівлі до закриття місяця`],
       ['storefront', `${ob.points.length} точк${n(ob.points.length, 'а', 'и', 'ок')} і ${ob.depts.length} підрозділ${ob.depts.length === 1 ? '' : 'и'}`, 'Окремі виручка, витрати й прибуток'],
       ['warehouse', `${ob.stores.length} місц${ob.stores.length === 1 ? 'е' : 'я'} зберігання`, `ФІФО${ob.prodTech ? ', списання за техкартами' : ''}${ob.prodSemi ? ', напівфабрикати' : ''}`],
@@ -189,7 +229,7 @@ export function Onboarding() {
       ['link', `${conns} підключень`, 'Дані почнуть надходити протягом години']
     ];
     html = <>
-      <div className="hero-ok"><span className="big"><Ms style={{ fontSize: 32 }}>check</Ms></span><div><h1 className="headline-m" style={{ margin: 0 }}>Облік налаштовано</h1><p className="body-m muted" style={{ margin: '4px 0 0' }}>{b.t} · {f.t}</p></div></div>
+      <div className="hero-ok"><span className="big"><Ms style={{ fontSize: 32 }}>check</Ms></span><div><h1 className="headline-m" style={{ margin: 0 }}>Облік налаштовано</h1><p className="body-m muted" style={{ margin: '4px 0 0' }}>{b.t} · {groupLabel}</p></div></div>
       <div className="summary">{items.map(([ic, t, sub]) => <div className="sum-item" key={ic}><Ms>{ic}</Ms><div><div className="title-s">{t}</div><div className="body-s muted" style={{ marginTop: 2 }}>{sub}</div></div></div>)}</div>
       <p className="body-s muted" style={{ margin: 0 }}>Це стартовий стан. Далі будь-яка зміна (новий працівник, нова точка, продаж обладнання, зміна системи оподаткування) вноситься з датою в розділі «Структура і зміни», і звіти за минулі періоди не ламаються.</p>
     </>;
