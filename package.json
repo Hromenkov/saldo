@@ -8,7 +8,8 @@
     "build": "tsc -b && tsx scripts/check-postings.mts && tsx scripts/check-finance.mts && tsx scripts/check-assets.mts && tsx scripts/check-stock.mts && tsx scripts/check-vat.mts && tsx scripts/check-payroll.mts && vite build",
     "preview": "vite preview",
     "check:functions": "tsc -p tsconfig.functions.json",
-    "test": "tsx scripts/check-postings.mts && tsx scripts/check-finance.mts && tsx scripts/check-assets.mts && tsx scripts/check-stock.mts && tsx scripts/check-vat.mts && tsx scripts/check-payroll.mts"
+    "test": "tsx scripts/check-postings.mts && tsx scripts/check-finance.mts && tsx scripts/check-assets.mts && tsx scripts/check-stock.mts && tsx scripts/check-vat.mts && tsx scripts/check-payroll.mts",
+    "eval": "tsx scripts/eval-recognize.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.4.0",

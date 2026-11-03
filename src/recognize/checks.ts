@@ -34,7 +34,7 @@ const FIELD: Record<string, string> = {
   direction: 'хто покупець (вхідний чи вихідний документ)', account: 'рахунок обліку', net: 'сума без ПДВ', vat: 'ПДВ', total: 'загальна сума',
   vat_rate: 'ставка ПДВ', number: 'номер', date: 'дата', doc_type: 'тип документа', kind: 'вид операції', currency: 'валюта',
   'counterparty.name': 'назва контрагента', 'counterparty.edrpou': 'ЄДРПОУ/ІПН контрагента', 'counterparty.vat_ipn': 'ІПН платника ПДВ',
-  'our_side.name': 'покупець', amount: 'сума', qty: 'кількість', price: 'ціна', name: 'назва товару', unit: 'одиниця'
+  'our_side.name': 'покупець', items: 'кількість рядків', amount: 'сума', qty: 'кількість', price: 'ціна', name: 'назва товару', unit: 'одиниця'
 };
 /** Назви полів схеми (items[0].amount) → зрозумілі бухгалтеру (сума в рядку 1). */
 export function fieldLabel(f: string): string {

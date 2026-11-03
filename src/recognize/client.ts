@@ -1,6 +1,6 @@
 // Браузерна частина: підготувати файл, надіслати на /api/recognize, зібрати документ для списку.
 import type { Doc } from '../data';
-import { autoReady, postings, runChecks } from './checks';
+import { autoReady, fieldLabel, postings, runChecks } from './checks';
 import { matchItem } from './nomenclature';
 import { checkLines, fitsKind, isCostAccount, purposeAccount, TAX_PURPOSE } from './chart';
 import { isMoneyKind } from './accounts';
@@ -58,6 +58,12 @@ export async function recognizeFile(file: File, company: string, existing: Doc[]
   const acc = rule && (ACCOUNTS as readonly string[]).includes(rule) ? rule : r.account;
   const checks = runChecks(r, existing, new Date(), company);
   if (body.side && body.side < 1200) checks.push({ ok: false, t: `Фото дрібне (${body.side} px): цифри можуть читатися з помилками, краще сфотографувати ближче` });
+  if (data.passes === 2) checks.push(data.diff?.length
+    ? { ok: false, t: `Два незалежні читання розійшлися: ${[...new Set(data.diff.map(fieldLabel))].join(', ')}. Звірте з оригіналом` }
+    : { ok: true, t: 'Два незалежні читання збіглися в усіх цифрах' });
+  r.items.forEach((it, i) => {
+    if (it.qty != null && !Number.isInteger(it.qty) && /^шт/i.test(it.unit || '')) checks.push({ ok: false, t: `Рядок ${i + 1}: дробова кількість ${it.qty} в штуках. Можливо, це кг` });
+  });
   if (r.handwritten) checks.push({ ok: false, t: 'Заповнено від руки: звірте цифри з оригіналом перед проведенням' });
   if (r.kind === 'purchase_goods' && r.items.length) {
     const m = r.items.map(it => matchItem(edrpou, it.name));

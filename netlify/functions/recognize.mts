@@ -3,6 +3,7 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { Recognized, type RecognizeRequest, type RecognizeResponse } from '../../src/recognize/schema';
+import { reconcile } from '../../src/recognize/reconcile';
 
 const MODEL = 'claude-opus-5-5';
 
@@ -31,6 +32,12 @@ const SYSTEM = `Ти досвідчений український бухгал�
 - Документ може бути заповнений від руки (товарна накладна, рахунок). Уважно читай рукописні цифри: розрізняй 1 і 7, 4 і 9, 3 і 8, 0 і 6, кому і крапку в сумах. Перевір себе: кількість × ціна має дорівнювати сумі рядка, а сума рядків загальній сумі. Якщо не сходиться, перечитай цифри ще раз; якщо все одно не сходиться, перепиши як є і додай поле в uncertain.
 - Якщо в документі кілька ставок ПДВ (наприклад, 20% і 7% у податковій накладній), vat_rate = null, а net, vat і total бери з підсумків документа.
 - ТТН, CMR, транспортна накладна без сум товару: kind = other. Якщо в ТТН є «Всього відпущено на суму», заповни суми.
+- Рукописні бланки накладних: «Кому відпущено» — покупець (отримувач), «Від кого прийнято» — постачальник. Скорочення «ф/п», «п/п», «фоп», «ФОП» означають фізичну особу-підприємця: назву записуй як «ФОП Прізвище І.Б.». Дату з окремих полів («22» «08» 2026) збирай в одну.
+- Номер телефону, дописки на полях, підписи й розшифровки не є номером документа, кодом чи сумою: ігноруй їх. Номер документа — лише у полі «№» біля назви.
+- Код ЄДРПОУ або ІПН може бути лише на печатці. Бери його з печатки, тільки якщо всі цифри чітко читаються, інакше null. Ніколи не вигадуй код.
+- Надрукований рядок «ПДВ 20%» з порожньою клітинкою означає, що ПДВ немає (постачальник не платник ПДВ): vat = 0, vat_rate = null. Не нараховуй 20% сам.
+- Одиницю виміру читай уважно: «кг», «шт», «л», «уп». Дробова кількість (17,7) майже завжди означає вагу чи об’єм, а не штуки. Якщо написано «шт», а кількість дробова, все одно перепиши як написано і додай items[i].unit в uncertain.
+- Назву товару переписуй так, як написано, без скорочень від себе; нерозбірливе закінчення слова доповнюй лише тоді, коли воно однозначне (Карпат… → Карпатський), і тоді додай items[i].name в uncertain.
 - Порожній бланк без заповнених даних: kind = other, confidence 0, у note напиши «Порожній бланк». Нічого не вигадуй.
 - Якщо на зображенні немає бухгалтерського документа, постав kind = other, confidence 0 і поясни в note.`;
 
@@ -53,22 +60,32 @@ export default async (req: Request) => {
     : { type: 'image', source: { type: 'base64', media_type: body.mime as 'image/jpeg', data: body.data } };
 
   const client = new Anthropic({ timeout: 55_000, maxRetries: 1 });
+  const read = () => client.beta.messages.parse({
+    model: MODEL,
+    max_tokens: 8000,
+    betas: ['server-side-fallback-2026-07-01'],
+    fallbacks: 'default',
+    output_config: { effort: 'high', format: betaZodOutputFormat(Recognized) },
+    system: SYSTEM,
+    messages: [{
+      role: 'user',
+      content: [file, { type: 'text', text: `Наша компанія: ${body.company || 'ТОВ «Приклад»'}. Файл: ${body.name}. Розпізнай документ.` }]
+    }]
+  });
   try {
-    const msg = await client.beta.messages.parse({
-      model: MODEL,
-      max_tokens: 8000,
-      betas: ['server-side-fallback-2026-07-01'],
-      fallbacks: 'default',
-      output_config: { effort: 'high', format: betaZodOutputFormat(Recognized) },
-      system: SYSTEM,
-      messages: [{
-        role: 'user',
-        content: [file, { type: 'text', text: `Наша компанія: ${body.company || 'ТОВ «Приклад»'}. Файл: ${body.name}. Розпізнай документ.` }]
-      }]
-    });
-    if (msg.stop_reason === 'refusal') return json({ ok: false, error: 'Модель відмовилася обробляти цей файл' }, 422);
-    if (msg.stop_reason === 'max_tokens' || !msg.parsed_output) return json({ ok: false, error: 'Документ задовгий або нечитабельний: спробуйте окремі сторінки' }, 422);
-    return json({ ok: true, result: msg.parsed_output, model: msg.model });
+    // фото (часто рукопис) читаємо двічі паралельно і звіряємо; PDF зазвичай друкований — одного читання досить
+    const passes = isPdf ? 1 : 2;
+    const settled = await Promise.allSettled(Array.from({ length: passes }, read));
+    const done = settled.flatMap(r => r.status === 'fulfilled' ? [r.value] : []);
+    if (!done.length) throw (settled[0] as PromiseRejectedResult).reason;
+    const good = done.filter(m => m.stop_reason !== 'refusal' && m.stop_reason !== 'max_tokens' && m.parsed_output);
+    if (!good.length) {
+      if (done.some(m => m.stop_reason === 'refusal')) return json({ ok: false, error: 'Модель відмовилася обробляти цей файл' }, 422);
+      return json({ ok: false, error: 'Документ задовгий або нечитабельний: спробуйте окремі сторінки' }, 422);
+    }
+    if (good.length === 1) return json({ ok: true, result: good[0].parsed_output!, model: good[0].model, passes: 1 });
+    const { result, diff } = reconcile(good[0].parsed_output!, good[1].parsed_output!);
+    return json({ ok: true, result, model: good[0].model, passes: 2, diff });
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) return json({ ok: false, error: 'Ключ ANTHROPIC_API_KEY недійсний' }, 503);
     if (e instanceof Anthropic.RateLimitError) return json({ ok: false, error: 'Забагато запитів, спробуйте за хвилину' }, 429);
