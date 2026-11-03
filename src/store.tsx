@@ -4,7 +4,7 @@ import { ASSETS, BANK, CLOSE, DOCS, HISTORY, LEDGER, QUESTIONS, REPORTS, type Bi
 import { INITIAL_CHAT, type Msg } from './chat';
 
 export type Role = 'owner' | 'acc';
-export type View = 'overview' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'assets' | 'structure';
+export type View = 'overview' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'assets' | 'structure' | 'stock';
 export type Sheet = { kind: 'doc'; id: number } | { kind: 'op'; i: number } | { kind: 'asset'; id: string };
 export type Dialog = { kind: 'sign'; name: string; per: string } | { kind: 'upload' } | { kind: 'plan' } | { kind: 'act'; cp: string; edrpou?: string };
 
@@ -36,12 +36,14 @@ export const NAV: Record<Role, [View, string, string, ((s: State) => number | ''
     ['reports', 'description', 'Звітність', s => s.reports.filter(r => r.st === 'ready').length || ''],
     ['docs', 'folder_open', 'Документи'],
     ['bank', 'account_balance', 'Банк'],
+    ['stock', 'inventory_2', 'Склад'],
     ['structure', 'schema', 'Структура і зміни']
   ],
   acc: [
     ['docs', 'inbox', 'Вхідні документи', s => s.docs.filter(d => d.st !== 'ok').length || ''],
     ['bank', 'account_balance', 'Банк', s => s.bank.filter(b => b.st !== 'ok').length || ''],
     ['questions', 'contact_support', 'Питання власнику', s => s.questions.length || ''],
+    ['stock', 'inventory_2', 'Склад'],
     ['ops', 'account_tree', 'Типові операції'],
     ['assets', 'inventory_2', 'Основні засоби'],
     ['ledger', 'table_view', 'Оборотно-сальдова'],
