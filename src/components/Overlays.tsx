@@ -37,7 +37,8 @@ function DocSheet({ id }: { id: number }) {
   const warnOf = (f: string) => block.find(c => c.field === f);
   // номенклатура: лише для товарної накладної кожен рядок має стати позицією нашого довідника
   const goods = d.kind === 'purchase_goods' && !!d.items?.length;
-  const choiceOf = (i: number) => pick[i] ?? (d.items![i].nom ? 'done' : auto[i]?.id ?? '');
+  // позиції, якої ще немає в довіднику, за замовчуванням створюється з назви постачальника — без окремого вибору
+  const choiceOf = (i: number) => pick[i] ?? (d.items![i].nom ? 'done' : auto[i]?.id ?? 'new');
   const unbound = goods && d.st !== 'ok' ? d.items!.filter((_, i) => !choiceOf(i)).length : 0;
   const needs = !!warnOf('acc');
   const net = d.sum - (d.kind === 'pn' ? 0 : d.vat);
@@ -60,7 +61,7 @@ function DocSheet({ id }: { id: number }) {
   const cfNow = cfSel ?? (accSel === undefined && d.cf ? d.cf : cfAuto);
   const fit = ACCOUNTS.filter(a => fitsKind(d.kind, a));
   const accs: string[] = d.acc && !(fit as readonly string[]).includes(d.acc) ? [d.acc, ...fit] : [...fit];
-  const codeCheck = d.checks?.find(c => /ЄДРПОУ|ІПН|Код контрагента/.test(c.t));
+  const codeCheck = d.checks?.find(c => /^(ЄДРПОУ|ІПН|Код контрагента|Коду контрагента)/.test(c.t));
   const post = () => {
     const prev = d.st;
     const acc = accNow;
@@ -174,7 +175,7 @@ function DocSheet({ id }: { id: number }) {
                     {activeItems(cat).map(o => <option key={o.id} value={o.id}>{o.name}, {o.unit}</option>)}
                     <option value="new">+ Нова позиція: {it.name}</option>
                   </select>
-                  <div className="body-s" style={{ marginTop: 2, color: !c ? 'var(--md-error)' : undefined }}>{!c ? 'Немає в довіднику' : pick[i] !== undefined ? (c === 'new' ? 'Буде додано до довідника' : 'Обрано вручну') : a?.how === 'map' ? 'За збереженою прив’язкою' : a?.how === 'other' ? 'Так само прив’язано в іншого постачальника' : 'Схожа назва: перевірте'}</div>
+                  <div className="body-s" style={{ marginTop: 2, color: !c ? 'var(--md-error)' : undefined }}>{!c ? 'Немає в довіднику' : c === 'new' ? 'Нова позиція: буде створено з цієї назви' : pick[i] !== undefined ? 'Обрано вручну' : a?.how === 'map' ? 'За збереженою прив’язкою' : a?.how === 'other' ? 'Так само прив’язано в іншого постачальника' : 'Схожа назва: перевірте'}</div>
                 </>}</td>}
                 <td className="r">{it.qty ?? '—'}</td><td>{it.unit ?? ''}</td><td className="r">{it.price != null ? fmt(it.price) : '—'}</td><td className="r">{it.amount != null ? fmt(it.amount) : '—'}</td></tr>;
             })}</tbody></table></div>
