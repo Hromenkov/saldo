@@ -2,7 +2,7 @@
 // Ключ береться зі змінної середовища ANTHROPIC_API_KEY у налаштуваннях Netlify (не з коду).
 import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
-import { Recognized, type RecognizeRequest, type RecognizeResponse } from '../../src/recognize/schema';
+import { RecognizedWire, fromWire, type RecognizeRequest, type RecognizeResponse } from '../../src/recognize/schema';
 import { reconcile } from '../../src/recognize/reconcile';
 
 const MODEL = 'claude-opus-5-5';
@@ -10,7 +10,7 @@ const MODEL = 'claude-opus-5-5';
 const SYSTEM = `Ти досвідчений український бухгалтер. Тобі надсилають документ: накладну, акт, рахунок, заявку, податкову накладну, чек, ТТН, касовий ордер (ПКО, РКО) або платіжну інструкцію. Твоє завдання: точно витягти з нього дані за схемою.
 
 Правила:
-- Переписуй номери, коди і суми точно так, як надруковано. Не вигадуй і не обчислюй те, чого немає на документі: такі поля став null і додай їх назви в uncertain.
+- Переписуй номери, коди і суми точно так, як надруковано. Не вигадуй і не обчислюй те, чого немає на документі: такі поля став null (числа) або порожній рядок "" (текст) і додай їх назви в uncertain.
 - Якщо цифра читається неоднозначно (розмите фото, печатка поверх), все одно дай найкращий варіант, але додай поле в uncertain і знизь confidence.
 - Суми подавай числами в гривнях з копійками (12345.67), дати у форматі YYYY-MM-DD.
 - Контрагент це інша сторона документа, не наша компанія. Напрям визначай відносно нашої компанії. Якщо нашої компанії в документі немає, вважай нашою стороною покупця, запиши його в our_side, а direction = incoming.
@@ -66,7 +66,7 @@ export default async (req: Request) => {
     max_tokens: 8000,
     betas: ['server-side-fallback-2026-07-01'],
     fallbacks: 'default',
-    output_config: { effort: 'high', format: betaZodOutputFormat(Recognized) },
+    output_config: { effort: 'high', format: betaZodOutputFormat(RecognizedWire) },
     system: SYSTEM,
     messages: [{
       role: 'user',
@@ -84,8 +84,8 @@ export default async (req: Request) => {
       if (done.some(m => m.stop_reason === 'refusal')) return json({ ok: false, error: 'Модель відмовилася обробляти цей файл' }, 422);
       return json({ ok: false, error: 'Документ задовгий або нечитабельний: спробуйте окремі сторінки' }, 422);
     }
-    if (good.length === 1) return json({ ok: true, result: good[0].parsed_output!, model: good[0].model, passes: 1 });
-    const { result, diff } = reconcile(good[0].parsed_output!, good[1].parsed_output!);
+    if (good.length === 1) return json({ ok: true, result: fromWire(good[0].parsed_output!), model: good[0].model, passes: 1 });
+    const { result, diff } = reconcile(fromWire(good[0].parsed_output!), fromWire(good[1].parsed_output!));
     return json({ ok: true, result, model: good[0].model, passes: 2, diff });
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) return json({ ok: false, error: 'Ключ ANTHROPIC_API_KEY недійсний' }, 503);
