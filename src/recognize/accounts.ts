@@ -15,5 +15,5 @@ export const ACCOUNTS = [
   '641 Розрахунки за податками'
 ] as const;
 
-export const DOC_KINDS = ['purchase_goods', 'purchase_service', 'sale', 'tax_invoice', 'receipt', 'other'] as const;
+export const DOC_KINDS = ['purchase_goods', 'purchase_service', 'sale', 'invoice', 'tax_invoice', 'receipt', 'other'] as const;
 

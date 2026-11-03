@@ -4,9 +4,12 @@ import { unzipSync, strFromU8 } from 'fflate';
 import type { BankRow, Doc } from '../data';
 
 export type LedgerRow = [string, string, number, number, number, number, number, number];
+/** Позиція номенклатури з BAS: код, назва, одиниця. */
+export type BasItem = { code?: string; name: string; unit?: string; archived?: boolean };
+
 export type Imported =
   | { kind: 'bank'; rows: BankRow[]; account: string }
-  | { kind: 'docs'; docs: Omit<Doc, 'id'>[]; partners: number }
+  | { kind: 'docs'; docs: Omit<Doc, 'id'>[]; partners: number; items: BasItem[] }
   | { kind: 'ledger'; rows: LedgerRow[]; period: string };
 
 export const is1cFile = (f: File) => /\.(txt|xml|xlsx|csv)$/i.test(f.name);
@@ -93,9 +96,26 @@ export function parseEnterpriseData(text: string): Imported {
   if (!body) throw new Error('Це не вивантаження EnterpriseData: немає розділу Body');
   const docs: Omit<Doc, 'id'>[] = [];
   let partners = 0;
+  // номенклатура: і з довідника, і з рядків документів (там BAS кладе посилання з кодом і назвою)
+  const items = new Map<string, BasItem>();
+  const addItem = (el: Element, fromCatalog = false) => {
+    const key = first(el, 'КлючевыеСвойства') || el;
+    const name = txt(key, 'Наименование') || txt(el, 'НаименованиеПолное');
+    if (!name) return;
+    const code = txt(key, 'Код') || undefined;
+    const unitEl = first(el, 'ЕдиницаИзмерения', 'БазоваяЕдиницаИзмерения');
+    const unit = unitEl ? (txt(unitEl, 'Наименование') || unitEl.textContent?.trim()) || undefined : undefined;
+    // помітку на видалення беремо лише з довідника: у рядку документа її немає
+    const archived = fromCatalog ? /^true$/i.test(txt(el, 'ПометкаУдаления')) : undefined;
+    const k = code || name.toLowerCase();
+    const prev = items.get(k);
+    items.set(k, { code, name, unit: unit || prev?.unit, archived: archived ?? prev?.archived });
+  };
   for (const el of kids(body)) {
     const name = el.localName;
     if (name === 'Справочник.Контрагенты') { partners++; continue; }
+    if (name === 'Справочник.Номенклатура') { addItem(el, true); continue; }
+    if (name.startsWith('Документ.')) Array.from(el.getElementsByTagName('*')).filter(x => x.localName === 'Номенклатура' && x.children.length).forEach(x => addItem(x));
     if (!name.startsWith('Документ.')) continue;
     const short = name.slice('Документ.'.length);
     const [type, kind] = DOC_NAMES[short] || [short.replace(/([а-яієї])([А-ЯІЄЇ])/g, '$1 $2'), 'other'];
@@ -109,8 +129,8 @@ export function parseEnterpriseData(text: string): Imported {
       lines: [], edrpou: txt(cpEl, 'КодПоЕДРПОУ', 'ИНН') || undefined
     });
   }
-  if (!docs.length) throw new Error(partners ? `У файлі лише довідники (${partners} контрагентів), документів немає` : 'У файлі не знайдено документів');
-  return { kind: 'docs', docs, partners };
+  if (!docs.length && !items.size) throw new Error(partners ? `У файлі лише довідник контрагентів (${partners}), документів і номенклатури немає` : 'У файлі не знайдено документів');
+  return { kind: 'docs', docs, partners, items: [...items.values()] };
 }
 
 // ---------- ОСВ з Excel ----------

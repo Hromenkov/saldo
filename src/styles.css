@@ -552,3 +552,5 @@ body { background: var(--app-bg); }
 
 /* React: корінь застосунку не повинен ламати ланцюжок висот */
 #root { height: 100%; }
+.nom-sel { width: 100%; font: inherit; font-size: 13px; color: var(--md-on-surface); background: var(--md-surface-container-lowest); border: 1px solid var(--md-outline-variant); border-radius: 8px; padding: 6px 8px; }
+.nom-sel:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 1px; }

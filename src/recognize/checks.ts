@@ -30,7 +30,23 @@ export function rnokppValid(code: string): boolean {
 const near = (a: number, b: number, tol = 0.05) => Math.abs(a - b) <= tol;
 const money = (n: number) => n.toLocaleString('uk-UA', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
-export function runChecks(r: Recognized, existing: Doc[], today = new Date()): Check[] {
+const FIELD: Record<string, string> = {
+  direction: 'хто покупець (вхідний чи вихідний документ)', account: 'рахунок обліку', net: 'сума без ПДВ', vat: 'ПДВ', total: 'загальна сума',
+  vat_rate: 'ставка ПДВ', number: 'номер', date: 'дата', doc_type: 'тип документа', kind: 'вид операції', currency: 'валюта',
+  'counterparty.name': 'назва контрагента', 'counterparty.edrpou': 'ЄДРПОУ/ІПН контрагента', 'counterparty.vat_ipn': 'ІПН платника ПДВ',
+  'our_side.name': 'покупець', amount: 'сума', qty: 'кількість', price: 'ціна', name: 'назва товару', unit: 'одиниця'
+};
+/** Назви полів схеми (items[0].amount) → зрозумілі бухгалтеру (сума в рядку 1). */
+export function fieldLabel(f: string): string {
+  const m = f.match(/^items\[(\d+)\]\.?(\w+)?$/);
+  if (m) return `${FIELD[m[2] || ''] || 'рядок'} в рядку ${Number(m[1]) + 1}`;
+  return FIELD[f] || FIELD[f.split('.').pop() || ''] || f;
+}
+
+const norm = (s: string) => s.toLowerCase().replace(/тов|фоп|прат|пат|ат|«|»|"|'|\s|\./g, '');
+const sameCompany = (a: string, b: string) => { const x = norm(a), y = norm(b); return !!x && !!y && (x.includes(y) || y.includes(x)); };
+
+export function runChecks(r: Recognized, existing: Doc[], today = new Date(), company = ''): Check[] {
   const out: Check[] = [];
   const code = (r.counterparty.edrpou || '').replace(/\D/g, '');
   const ipn = (r.counterparty.vat_ipn || '').replace(/\D/g, '');
@@ -94,7 +110,16 @@ export function runChecks(r: Recognized, existing: Doc[], today = new Date()): C
     out.push({ ok: false, t: `Валюта ${r.currency}: потрібен перерахунок за курсом НБУ` });
   }
 
-  if (r.uncertain.length) out.push({ ok: false, t: 'Погано читається: ' + r.uncertain.join(', ') });
+  const NOT_POSTING: Partial<Record<Recognized['kind'], string>> = {
+    invoice: 'Рахунок на оплату — не первинний документ: проводки будуть за накладною або актом',
+    tax_invoice: 'Податкова накладна — податковий документ: проводок не створює, звіримо з ЄРПН',
+    receipt: 'Чек — додаток до авансового звіту: проводок не створює',
+    other: 'Це не накладна і не акт: проводок не створює'
+  };
+  if (NOT_POSTING[r.kind]) out.push({ ok: false, t: NOT_POSTING[r.kind]! });
+  const ours = (r.our_side?.name || '').trim();
+  if (ours && company && !sameCompany(ours, company)) out.push({ ok: false, t: `У документі наша сторона — ${ours}, а не ${company}. Перевірте, чи це документ вашої компанії` });
+  if (r.uncertain.length) out.push({ ok: false, t: 'Перевірте вручну: ' + [...new Set(r.uncertain.map(fieldLabel))].join(', ') });
   return out;
 }
 
@@ -110,16 +135,13 @@ export function postings(r: Recognized, acc: string): Doc['lines'] {
       L.push(['361', a.startsWith('70') ? a : '702', total, 'Дохід від реалізації']);
       if (vat) L.push([a.startsWith('70') ? a : '702', '643', vat, 'ПДВ зобов’язання']);
       break;
-    case 'tax_invoice':
-      if (r.direction === 'incoming') L.push(['641', '644', vat || total, 'Податковий кредит']);
-      else L.push(['643', '641', vat || total, 'Податкові зобов’язання з ПДВ']);
-      break;
-    case 'receipt':
-      L.push([a, '372', total, 'Покупка за чеком через підзвітну особу']);
+    case 'purchase_goods':
+    case 'purchase_service':
+      L.push([a, '631', net, r.kind === 'purchase_goods' ? 'Оприбутковано від постачальника' : 'Витрати за документом постачальника']);
+      if (vat) L.push(['6441', '631', vat, 'ПДВ до отримання ПН']);
       break;
     default:
-      L.push([a, '631', net, r.kind === 'purchase_goods' ? 'Оприбутковано від постачальника' : 'Витрати за документом постачальника']);
-      if (vat) L.push(['644', '631', vat, 'ПДВ до отримання ПН']);
+      break; // проводки лише за накладною або актом; рахунок, ПН, ТТН, чек їх не створюють
   }
   return L;
 }
