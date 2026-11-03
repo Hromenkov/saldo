@@ -5,6 +5,7 @@ import { saveRule } from '../recognize/rules';
 import { blocking } from '../recognize/checks';
 import { partyKey, rememberParty } from '../recognize/suppliers';
 import { addCompany, ourCompanies } from '../recognize/companies';
+import { remember, withPosted } from '../recognize/registry';
 import { checkLines, fitsKind } from '../recognize/chart';
 import { basisChain, cashFlowArticle, CF_ARTICLES } from '../recognize/basis';
 import { allocate, balances, movements, reconciliation, withAdvances } from '../recognize/settlements';
@@ -35,6 +36,8 @@ function DocSheet({ id }: { id: number }) {
   // підсвічуються лише ключові поля, в яких є реальний сумнів (читання розійшлися, арифметика, контрольна сума)
   const block = d.st === 'ok' ? [] : blocking(d.checks);
   const warnOf = (f: string) => block.find(c => c.field === f);
+  // дублікат не можна підтвердити: лише відкрити вже наявний документ або відхилити цей
+  const dupOf = block.find(c => c.dupOf != null)?.dupOf;
   // номенклатура: лише для товарної накладної кожен рядок має стати позицією нашого довідника
   const goods = d.kind === 'purchase_goods' && !!d.items?.length;
   // позиції, якої ще немає в довіднику, за замовчуванням створюється з назви постачальника — без окремого вибору
@@ -96,6 +99,7 @@ function DocSheet({ id }: { id: number }) {
       const r = receiveFromDoc(d.id, `${d.type} № ${noNew}, ${cpNew}`, `${yNew || '2026'}-${mm}-${dd}`, stockLoc, acc!, d.items!.map((it, i) => ({ item: ids[i], qty: it.qty, price: it.price, amount: it.amount })));
       if (r.error) { snack(r.error); return; }
     }
+    if (d.checks) remember({ ...d, cp: cpNew, no: noNew, date: dateNew, y: yNew, sum: sumNew, vat: vatNew });
     upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) { dd.st = 'ok'; dd.lines = linesNew; dd.cp = cpNew; dd.no = noNew; dd.date = dateNew; dd.y = yNew; dd.sum = sumNew; dd.vat = vatNew; if (acc) dd.acc = acc; if (money) dd.cf = cfNow; if (goods) dd.items!.forEach((it, i) => { it.nom = noms[i]; }); } });
     closeSheet();
     snack(`${d.type} № ${noNew} ${lines.length ? 'проведено' : 'збережено'}` + (toStock ? `, товар надійшов на «${getStock().locations.find(l => l.id === stockLoc)?.name}»` : ''), () => {
@@ -175,7 +179,7 @@ function DocSheet({ id }: { id: number }) {
                     {activeItems(cat).map(o => <option key={o.id} value={o.id}>{o.name}, {o.unit}</option>)}
                     <option value="new">+ Нова позиція: {it.name}</option>
                   </select>
-                  <div className="body-s" style={{ marginTop: 2, color: !c ? 'var(--md-error)' : undefined }}>{!c ? 'Немає в довіднику' : c === 'new' ? 'Нова позиція: буде створено з цієї назви' : pick[i] !== undefined ? 'Обрано вручну' : a?.how === 'map' ? 'За збереженою прив’язкою' : a?.how === 'other' ? 'Так само прив’язано в іншого постачальника' : 'Схожа назва: перевірте'}</div>
+                  <div className="body-s" style={{ marginTop: 2, color: !c ? 'var(--md-error)' : undefined }}>{!c ? 'Немає в довіднику' : c === 'new' ? 'Нова позиція: буде створено з цієї назви' : pick[i] !== undefined ? 'Обрано вручну' : a?.how === 'map' ? 'З довідника: як у попередніх накладних' : a?.how === 'other' ? 'З довідника: так само прив’язано в іншого постачальника' : 'З довідника за схожою назвою'}</div>
                 </>}</td>}
                 <td className="r">{it.qty ?? '—'}</td><td>{it.unit ?? ''}</td><td className="r">{it.price != null ? fmt(it.price) : '—'}</td><td className="r">{it.amount != null ? fmt(it.amount) : '—'}</td></tr>;
             })}</tbody></table></div>
@@ -189,7 +193,8 @@ function DocSheet({ id }: { id: number }) {
         </div>}
         {d.checks && <div>
           {block.length > 0 && <><div className="title-s" style={{ marginBottom: 10 }}>Потрібна ваша увага</div>
-            <ul className="checks body-m">{block.map((c, i) => <li key={i}><Ms style={{ color: 'var(--md-error)' }}>error</Ms>{c.t}</li>)}</ul></>}
+            <ul className="checks body-m">{block.map((c, i) => <li key={i}><Ms style={{ color: 'var(--md-error)' }}>error</Ms><span>{c.t}
+              {c.dupOf != null && s.docs.some(x => x.id === c.dupOf) && <div><a href="#" style={{ color: 'var(--md-primary)' }} onClick={e => { e.preventDefault(); openSheet({ kind: 'doc', id: c.dupOf! }); }}>Відкрити наявний документ</a> · цей можна відхилити</div>}</span></li>)}</ul></>}
           {block.length === 0 && d.st !== 'ok' && <div className="body-m" style={{ display: 'flex', gap: 8, alignItems: 'center' }}><Ms>task_alt</Ms>Сумнівів немає: перевіряти нічого не треба, натисніть «Підтвердити»</div>}
           {d.checks.some(c => c.ok || c.info) && <details style={{ marginTop: 10 }}><summary className="body-s muted" style={{ cursor: 'pointer' }}>Що перевірила система ({d.checks.filter(c => c.ok || c.info).length})</summary>
             <ul className="checks body-s" style={{ marginTop: 8 }}>{d.checks.filter(c => c.ok || c.info).map((c, i) => <li key={i}><Ms className="muted">{c.ok ? 'check_circle' : 'info'}</Ms>{c.t}</li>)}</ul></details>}
@@ -205,7 +210,7 @@ function DocSheet({ id }: { id: number }) {
       </div>
       <div className="sheet-foot">
         <button className="btn btn-text sl" onClick={reject}>Відхилити</button>
-        <button className="btn btn-filled sl" disabled={d.st === 'ok' || unbound > 0 || lineIssues.length > 0} onClick={post}><Ms>check</Ms>{d.st === 'ok' ? (lines.length ? 'Проведено' : 'Збережено') : 'Підтвердити'}</button>
+        <button className="btn btn-filled sl" disabled={d.st === 'ok' || unbound > 0 || lineIssues.length > 0 || dupOf != null} onClick={post}><Ms>check</Ms>{d.st === 'ok' ? (lines.length ? 'Проведено' : 'Збережено') : 'Підтвердити'}</button>
       </div>
     </>
   );
@@ -301,7 +306,7 @@ function UploadDialog() {
     if (rec.length) {
       snack(`Розпізнаю ${rec.length} ${plural(rec.length, 'файл', 'файли', 'файлів')}. Це займе до хвилини`);
       const base = Date.now() + 1000;
-      const res = await Promise.allSettled(rec.map((f, i) => recognizeFile(f, ourCompanies(), s.docs, base + i)));
+      const res = await Promise.allSettled(rec.map((f, i) => recognizeFile(f, ourCompanies(), withPosted(s.docs), base + i)));
       const done = res.flatMap(r => (r.status === 'fulfilled' ? [r.value] : []));
       if (done.length) { upd(x => { x.docs.unshift(...done); }); go('docs'); }
       res.forEach(r => { if (r.status === 'rejected') msgs.push(errText(r.reason)); });
