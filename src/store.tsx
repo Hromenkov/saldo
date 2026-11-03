@@ -6,7 +6,7 @@ import { INITIAL_CHAT, type Msg } from './chat';
 export type Role = 'owner' | 'acc';
 export type View = 'overview' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'structure';
 export type Sheet = { kind: 'doc'; id: number } | { kind: 'op'; i: number };
-export type Dialog = { kind: 'sign'; name: string; per: string } | { kind: 'upload' } | { kind: 'plan' };
+export type Dialog = { kind: 'sign'; name: string; per: string } | { kind: 'upload' } | { kind: 'plan' } | { kind: 'act'; cp: string; edrpou?: string };
 
 export type State = {
   role: Role; mode: 'mgmt' | 'acc'; period: string; view: View;
