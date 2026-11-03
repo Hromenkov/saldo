@@ -4,6 +4,10 @@ export type DocStatus = 'ok' | 'new' | 'check';
 export type Doc = {
   id: number; type: string; no: string; cp: string; date: string; sum: number; vat: number;
   st: DocStatus; src: string; conf: number; kind: string; lines: [string, string, number, string][];
+  /** рік документа, якщо не поточний (дата зберігається як дд.мм) */
+  y?: string;
+  /** поля розпізнаних та імпортованих документів */
+  acc?: string; edrpou?: string; checks?: { ok: boolean; t: string }[]; note?: string;
 };
 export type BankRow = { d: string; cp: string; p: string; s: number; dt: string; kt: string; st: DocStatus };
 export type Question = { id: string; icon: string; title: string; meta: string[]; opts: [string, string][]; doc?: number };

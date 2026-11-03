@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { LEDGER, type Question } from '../data';
+import { type Question } from '../data';
 import { useApp } from '../store';
 import { cx, fmt, Ms, StatusChip } from '../lib';
 import { BankTable } from '../components/Tables';
@@ -100,7 +100,7 @@ function ToggleChips({ items, initial }: { items: string[]; initial: number }) {
 }
 
 export function Ledger() {
-  const { snack } = useApp();
+  const { s, snack } = useApp();
   const cell = (v: number) => v ? fmt(v) : <span className="muted">—</span>;
   return (
     <div className="page">
@@ -109,9 +109,9 @@ export function Ledger() {
         <button className="btn btn-outlined sl" onClick={() => snack('Файл ОСВ_листопад_2026.xlsx сформовано')}><Ms>download</Ms>Excel</button></div>
       <div className="table-wrap"><table className="dt" style={{ minWidth: 960 }}>
         <thead><tr><th>Рахунок</th><th>Назва</th><th className="r">Сальдо поч. Дт</th><th className="r">Сальдо поч. Кт</th><th className="r">Оборот Дт</th><th className="r">Оборот Кт</th><th className="r">Сальдо кін. Дт</th><th className="r">Сальдо кін. Кт</th></tr></thead>
-        <tbody>{LEDGER.map(r => <tr key={r[0]}><td className="title-s num">{r[0]}</td><td>{r[1]}</td>{r.slice(2).map((v, i) => <td key={i} className="r">{cell(v as number)}</td>)}</tr>)}</tbody>
+        <tbody>{s.ledger.map(r => <tr key={r[0]}><td className="title-s num">{r[0]}</td><td>{r[1]}</td>{r.slice(2).map((v, i) => <td key={i} className="r">{cell(v as number)}</td>)}</tr>)}</tbody>
       </table></div>
-      <p className="body-s muted" style={{ marginTop: 12 }}>Дані прикладу. Період відкритий: проведено 47 з 51 документа.</p>
+      <p className="body-s muted" style={{ marginTop: 12 }}>{s.ledgerSrc ? `Імпортовано з 1С: ${s.ledgerSrc}` : 'Дані прикладу. Період відкритий: проведено 47 з 51 документа.'}</p>
     </div>
   );
 }

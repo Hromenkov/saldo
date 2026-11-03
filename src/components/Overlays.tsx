@@ -1,10 +1,15 @@
 import { useEffect, useRef } from 'react';
+import { ACCOUNTS } from '../recognize/accounts';
+import { recognizeFile } from '../recognize/client';
+import { saveRule } from '../recognize/rules';
+import { import1c, is1cFile, type Imported } from '../import1c';
 import { CHANGE_TYPES, OPS, type Doc } from '../data';
 import { useApp } from '../store';
 import { cx, fmt, ModeChip, Ms, plural, StatusChip } from '../lib';
 
 function DocSheet({ id }: { id: number }) {
   const { s, upd, snack, closeSheet } = useApp();
+  const accRef = useRef<HTMLSelectElement>(null);
   // після «Відхилити» документа вже немає в списку, але панель ще виїжджає: показуємо останній стан
   const last = useRef<Doc | undefined>(undefined);
   const d = s.docs.find(x => x.id === id) || last.current;
@@ -12,9 +17,14 @@ function DocSheet({ id }: { id: number }) {
   if (!d) return null;
   const needs = d.st === 'check';
   const net = d.sum - (d.kind === 'pn' ? 0 : d.vat);
+  const accs: string[] = d.acc && !(ACCOUNTS as readonly string[]).includes(d.acc) ? [d.acc, ...ACCOUNTS] : [...ACCOUNTS];
+  const codeCheck = d.checks?.find(c => /ЄДРПОУ|ІПН|Код контрагента/.test(c.t));
   const post = () => {
     const prev = d.st;
-    upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) dd.st = 'ok'; });
+    const acc = accRef.current?.value;
+    // підтверджений рахунок стає правилом для цього контрагента
+    if (d.edrpou && acc && d.checks) saveRule(d.edrpou, acc);
+    upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) { dd.st = 'ok'; if (acc && d.checks) dd.acc = acc; } });
     closeSheet();
     snack(`${d.type} № ${d.no} проведено`, () => upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) dd.st = prev; }));
   };
@@ -30,28 +40,31 @@ function DocSheet({ id }: { id: number }) {
       <div className="sheet-body">
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><StatusChip st={d.st} /><span className="status st-mute"><Ms>{d.src === 'Telegram' ? 'send' : d.src === 'Email' ? 'mail' : 'cloud_download'}</Ms>{d.src}</span></div>
         <div className="preview" aria-hidden="true">
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}><b>{d.cp}</b><span className="num">{d.date}.2026</span></div>
+          <div style={{ display: 'flex', justifyContent: 'space-between' }}><b>{d.cp}</b><span className="num">{d.date}.{d.y || '2026'}</span></div>
           {[70, 45, 85, 60].map(w => <div key={w} className="pl" style={{ width: w + '%' }} />)}
           <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 8 }}><span>Разом з ПДВ</span><b className="num">{fmt(d.sum)} ₴</b></div>
         </div>
         <div className="conf body-s"><span>Впевненість розпізнавання</span><span className="bar"><span style={{ width: d.conf + '%' }} /></span><span className="num">{d.conf}%</span></div>
         <div className="form-grid">
-          <div className="tf full"><input id="f-cp" placeholder=" " defaultValue={d.cp} /><label htmlFor="f-cp">Контрагент</label><Ms className="trail-ic">verified</Ms><div className="support">ЄДРПОУ перевірено в ЄДР</div></div>
+          <div className="tf full"><input id="f-cp" placeholder=" " defaultValue={d.cp} /><label htmlFor="f-cp">Контрагент</label><Ms className="trail-ic">{codeCheck && !codeCheck.ok ? 'error' : 'verified'}</Ms><div className="support">{d.checks ? (codeCheck?.t || 'Код контрагента не знайдено') : 'ЄДРПОУ перевірено в ЄДР'}</div></div>
           <div className="tf"><input id="f-no" placeholder=" " defaultValue={d.no} /><label htmlFor="f-no">Номер</label></div>
-          <div className="tf"><input id="f-date" placeholder=" " defaultValue={d.date + '.2026'} /><label htmlFor="f-date">Дата</label><Ms className="trail-ic">calendar_today</Ms></div>
+          <div className="tf"><input id="f-date" placeholder=" " defaultValue={d.date + '.' + (d.y || '2026')} /><label htmlFor="f-date">Дата</label><Ms className="trail-ic">calendar_today</Ms></div>
           <div className="tf"><input id="f-net" placeholder=" " defaultValue={fmt(net)} /><label htmlFor="f-net">Сума без ПДВ, ₴</label></div>
           <div className="tf"><input id="f-vat" placeholder=" " defaultValue={fmt(d.vat)} /><label htmlFor="f-vat">ПДВ, ₴</label></div>
           <div className={cx('tf full', needs && 'warn')}>
-            <select id="f-acc">{['93 Витрати на збут', '92 Адміністративні витрати', '281 Товари на складі', '702 Дохід від реалізації', '641 Розрахунки за податками'].map(o => <option key={o}>{o}</option>)}</select>
+            <select id="f-acc" ref={accRef} defaultValue={d.acc}>{accs.map(o => <option key={o}>{o}</option>)}</select>
             <label htmlFor="f-acc">Рахунок витрат або доходу</label><Ms className="trail-ic">arrow_drop_down</Ms>
             {needs && <div className="support">Система не впевнена: уточніть призначення</div>}
           </div>
         </div>
-        <div>
+        {d.checks && <div><div className="title-s" style={{ marginBottom: 10 }}>Перевірки</div>
+          <ul className="checks body-m">{d.checks.map((c, i) => <li key={i}><Ms style={c.ok ? undefined : { color: 'var(--md-error)' }}>{c.ok ? 'check_circle' : 'error'}</Ms>{c.t}</li>)}</ul>
+          {d.note && <div className="body-s muted" style={{ marginTop: 10 }}>{d.note}</div>}</div>}
+        {d.lines.length > 0 && <div>
           <div className="title-s" style={{ marginBottom: 8 }}>Запропоновані проводки</div>
           <div className="posting"><table><thead><tr><th>Дт</th><th>Кт</th><th className="r">Сума, ₴</th><th>Зміст</th></tr></thead>
             <tbody>{d.lines.map((l, i) => <tr key={i}><td>{l[0]}</td><td>{l[1]}</td><td className="r">{fmt(l[2])}</td><td className="body-s muted">{l[3]}</td></tr>)}</tbody></table></div>
-        </div>
+        </div>}
       </div>
       <div className="sheet-foot">
         <button className="btn btn-text sl" onClick={reject}>Відхилити</button>
@@ -111,20 +124,62 @@ function SignDialog({ name, per }: { name: string; per: string }) {
   );
 }
 
+const COMPANY = 'ТОВ «Приклад»';
+const errText = (e: unknown) => (e instanceof Error ? e.message : 'Невідома помилка');
+
 function UploadDialog() {
-  const { snack, hideDialog } = useApp();
+  const { s, upd, go, snack, hideDialog, openSheet } = useApp();
+
+  const apply1c = (name: string, r: Imported) => {
+    if (r.kind === 'bank') {
+      upd(x => { x.bank.unshift(...r.rows); });
+      go('bank');
+      return `Виписка ${r.account || name}: ${r.rows.length} ${plural(r.rows.length, 'операцію', 'операції', 'операцій')} додано в «Банк»`;
+    }
+    if (r.kind === 'docs') {
+      const base = Date.now();
+      upd(x => { x.docs.unshift(...r.docs.map((d, i) => ({ ...d, id: base + i }))); });
+      go('docs');
+      return `З 1С імпортовано ${r.docs.length} ${plural(r.docs.length, 'документ', 'документи', 'документів')}`;
+    }
+    upd(x => { x.ledger = r.rows; x.ledgerSrc = name + (r.period ? ', ' + r.period : ''); });
+    return `ОСВ імпортовано: ${r.rows.length} ${plural(r.rows.length, 'рахунок', 'рахунки', 'рахунків')}. Дивіться «Оборотно-сальдова» в режимі бухгалтера`;
+  };
+
+  const handle = async (list: FileList | null) => {
+    const files = Array.from(list || []); if (!files.length) return;
+    hideDialog();
+    const msgs: string[] = [];
+    for (const f of files.filter(is1cFile)) {
+      try { msgs.push(apply1c(f.name, await import1c(f))); } catch (e) { msgs.push(`${f.name}: ${errText(e)}`); }
+    }
+    const rec = files.filter(f => !is1cFile(f));
+    if (rec.length) {
+      snack(`Розпізнаю ${rec.length} ${plural(rec.length, 'файл', 'файли', 'файлів')}. Це займе до хвилини`);
+      const base = Date.now() + 1000;
+      const res = await Promise.allSettled(rec.map((f, i) => recognizeFile(f, COMPANY, s.docs, base + i)));
+      const done = res.flatMap(r => (r.status === 'fulfilled' ? [r.value] : []));
+      if (done.length) { upd(x => { x.docs.unshift(...done); }); go('docs'); }
+      res.forEach(r => { if (r.status === 'rejected') msgs.push(errText(r.reason)); });
+      if (done.length) {
+        const check = done.filter(d => d.st === 'check').length;
+        msgs.unshift(`Розпізнано ${done.length} ${plural(done.length, 'документ', 'документи', 'документів')}` + (check ? `, ${check} ${plural(check, 'потребує', 'потребують', 'потребують')} перевірки` : ', усі перевірки пройдено'));
+      }
+      if (done.length === 1) openSheet({ kind: 'doc', id: done[0].id });
+    }
+    if (msgs.length) snack(msgs.join(' · '));
+  };
+
   return (
     <>
       <Ms className="d-ic">upload_file</Ms>
       <h2 className="headline-s">Завантажити документи</h2>
-      <p className="body-m muted" style={{ margin: 0, textAlign: 'center' }}>PDF, фото або XML. Система сама розпізнає тип документа і запропонує проводки.</p>
-      <label className="card card-outlined" style={{ borderStyle: 'dashed', textAlign: 'center', padding: 28, cursor: 'pointer', display: 'block' }}>
+      <p className="body-m muted" style={{ margin: 0, textAlign: 'center' }}>PDF або фото: система сама розпізнає тип документа і запропонує проводки. Також вивантаження з 1С/BAS: EnterpriseData (XML), виписка клієнт-банку (TXT), ОСВ (Excel).</p>
+      <label className="card card-outlined" style={{ borderStyle: 'dashed', textAlign: 'center', padding: 28, cursor: 'pointer', display: 'block' }}
+        onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); handle(e.dataTransfer.files); }}>
         <Ms style={{ fontSize: 40, color: 'var(--md-primary)' }}>cloud_upload</Ms>
         <div className="title-s" style={{ marginTop: 8 }}>Перетягніть файли сюди</div><div className="body-s muted">або натисніть, щоб вибрати</div>
-        <input type="file" id="fileIn" multiple hidden onChange={e => {
-          const n = e.target.files?.length || 0; if (!n) return;
-          hideDialog(); snack(`Завантажено ${n} ${plural(n, 'файл', 'файли', 'файлів')}. Розпізнавання займе до хвилини`);
-        }} />
+        <input type="file" id="fileIn" multiple hidden accept=".pdf,image/*,.xml,.txt,.xlsx,.csv" onChange={e => { handle(e.target.files); e.target.value = ''; }} />
       </label>
       <div className="body-s muted" style={{ textAlign: 'center' }}>Також можна надсилати на docs@saldo.ua або в Telegram-бот</div>
       <div className="actions"><button className="btn btn-text sl" onClick={hideDialog}>Закрити</button></div>

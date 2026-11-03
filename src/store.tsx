@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 import { produce, type Draft } from 'immer';
-import { BANK, CLOSE, DOCS, HISTORY, QUESTIONS, REPORTS, type Biz, type Form, type HistoryItem } from './data';
+import { BANK, CLOSE, DOCS, HISTORY, LEDGER, QUESTIONS, REPORTS, type Biz, type Form, type HistoryItem } from './data';
 import { INITIAL_CHAT, type Msg } from './chat';
 
 export type Role = 'owner' | 'acc';
@@ -13,6 +13,9 @@ export type State = {
   docTab: string; structTab: string;
   docs: typeof DOCS; bank: typeof BANK; questions: typeof QUESTIONS; reports: typeof REPORTS; close: typeof CLOSE;
   history: HistoryItem[];
+  ledger: typeof LEDGER;
+  /** звідки ОСВ: null = демо-дані, інакше назва файлу і період з 1С */
+  ledgerSrc: string | null;
   biz: { b: Biz; f: Form; group: string } | null;
   chat: Msg[];
   /** лічильник переходів: на нього реагує анімація появи сторінки */
@@ -51,6 +54,7 @@ const initial = (): State => ({
   role: 'owner', mode: 'mgmt', period: 'Листопад 2026', view: 'overview', docTab: 'all', structTab: 'Усі',
   docs: structuredClone(DOCS), bank: structuredClone(BANK), questions: structuredClone(QUESTIONS),
   reports: structuredClone(REPORTS), close: structuredClone(CLOSE), history: structuredClone(HISTORY),
+  ledger: structuredClone(LEDGER), ledgerSrc: null,
   biz: null, chat: INITIAL_CHAT(), nav: 0,
   sheet: null, sheetOpen: false, overlaySeq: 0, dialog: null, dialogOpen: false, drawerOpen: false, onbOpen: !onbSeen()
 });
