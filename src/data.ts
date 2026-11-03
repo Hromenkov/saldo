@@ -8,7 +8,7 @@ export type Doc = {
   /** рік документа, якщо не поточний (дата зберігається як дд.мм) */
   y?: string;
   /** поля розпізнаних та імпортованих документів */
-  acc?: string; edrpou?: string; checks?: { ok: boolean; t: string; info?: boolean; field?: 'cp' | 'no' | 'date' | 'sum' | 'acc'; addCompany?: string }[];
+  acc?: string; edrpou?: string; checks?: { ok: boolean; t: string; info?: boolean; field?: 'cp' | 'no' | 'date' | 'sum' | 'acc'; addCompany?: string; dupOf?: number }[];
   /** контрагент так, як його прочитала модель (до підстановки з довідника) */
   cpRead?: string; note?: string;
   /** коментар до документа: рукописні приписки на полях (телефон, ім’я) або текст бухгалтера; на облік не впливає */

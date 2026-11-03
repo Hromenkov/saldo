@@ -6,7 +6,7 @@ import { CHART, checkLines, fitsKind, purposeAccount, TAX_PURPOSE } from '../src
 import { ruleKey } from '../src/recognize/rules';
 import { reconcile, consistency } from '../src/recognize/reconcile';
 import { fieldLabel, runChecks, blocking, autoReady } from '../src/recognize/checks';
-import { sameParty, partyKey } from '../src/recognize/suppliers';
+import { sameParty, partyKey, findParty } from '../src/recognize/suppliers';
 import { basisChain, cashFlowArticle, monthOf } from '../src/recognize/basis';
 import { postings } from '../src/recognize/checks';
 import { ACCOUNTS } from '../src/recognize/accounts';
@@ -166,6 +166,20 @@ ok(checkLines([['40', '311', 0, '']]).length > 0, 'Виплата грошей �
   ok(blocking(c).filter(x => !/ІПН|ЄДРПОУ/.test(x.t)).length === 0, 'Рахунок-фактура № 783: рахунок обліку не питаємо (проводок немає), «не первинний» — довідка, інший покупець — кнопка, а не червоний пункт');
   ok(c.some(x => x.addCompany === 'ФОП Кеню') && !c.some(x => /рахунок обліку/.test(x.t)), 'Пропонуємо додати ФОП Кеню як нашу компанію; сумнів у рахунку обліку для рахунку-фактури не показується');
   ok(blocking(runChecks(inv, [], new Date('2026-11-03'), ['ТОВ «Приклад»', 'ФОП Кеню'], { passes: 2, diff: [] })).filter(x => !/ІПН|ЄДРПОУ/.test(x.t)).length === 0 && !runChecks(inv, [], new Date('2026-11-03'), ['ТОВ «Приклад»', 'ФОП Кеню']).some(x => x.addCompany), 'Після додавання ФОП Кеню документ визнається нашим');
+}
+{
+  const first: Doc = { id: 901, type: 'Накладна', no: '14', cp: 'ФОП Бригара В.И.', date: '22.08', y: '2026', sum: 14248.5, vat: 0, st: 'ok', src: 'Фото', conf: 95, kind: 'purchase_goods', lines: [],
+    items: [{ name: 'Сир Нарцис Карпатський', qty: 17.7, unit: 'кг', price: 805, amount: 14248.5 }] };
+  const again = { ...base, kind: 'purchase_goods', number: '14', date: '2026-08-22', counterparty: { name: 'ФОП Бригара Б.І.', edrpou: null, vat_ipn: null },
+    items: [{ name: 'Сир Нарцис Карпатський', qty: 17.7, unit: 'кг', price: 805, amount: 14248.5 }], net: 14248.5, vat: 0, total: 14248.5, vat_rate: null } as unknown as Recognized;
+  const c = runChecks(again, [first], new Date('2026-11-03'), '', { passes: 2, diff: [] });
+  ok(blocking(c).some(x => x.dupOf === 901), 'Повторне завантаження № 14 (ініціали прочитано інакше) — дублікат, червоним');
+  const other = runChecks({ ...again, number: '15' } as Recognized, [first], new Date('2026-11-03'), '', { passes: 2, diff: [] });
+  ok(!other.some(x => x.dupOf != null), 'Інший номер того самого постачальника — не дублікат');
+  const sup = findParty('ФОП Бригара Б.І.', undefined, [first], { items: ['Сир Нарцис Карпатський'], total: 14248.5, number: '14' });
+  ok(sup?.name === 'ФОП Бригара В.И.', 'Ініціали прочитано інакше, але той самий товар — контрагент береться з довідника');
+  ok(!findParty('ФОП Бригара Б.І.', undefined, [first], { items: ['Цукор'], total: 100 }), 'Те саме прізвище без жодного збігу документів — новий контрагент, не вгадуємо');
+  ok(sameParty('ФОП Бригара В.И.', 'ФОП Бригара В.І.'), 'Рос. «И» і укр. «І» в ініціалах — те саме');
 }
 ok(sameParty('ФОП Бригара О. І.', 'ф/п Бригар О.І.') && sameParty('ТОВ «Метро Кеш енд Кері»', 'Метро Кеш енд Кері') && !sameParty('ФОП Бригара О. І.', 'ФОП Бригадир В. П.') && !sameParty('ФОП Іваненко А. Б.', 'ФОП Іваненко В. Г.'),
   'Довідник контрагентів: той самий ФОП під різним написанням, різні — різні');

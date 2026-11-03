@@ -1,13 +1,14 @@
 // Перевірки кодом, а не моделлю: контрольні суми кодів, арифметика, дублікати.
 import type { Doc } from '../data';
 import type { Recognized } from './schema';
+import { sameSurname } from './suppliers';
 
 /**
  * ok — пройдено. info — довідка, яка не потребує дій і не зупиняє документ.
  * Решта (ok: false без info) — те, що людина має подивитися: сумнівні ключові поля, арифметика, план рахунків.
  * field — яке поле картки підсвітити: cp, no, date, sum, acc.
  */
-export type Check = { ok: boolean; t: string; info?: boolean; field?: 'cp' | 'no' | 'date' | 'sum' | 'acc'; addCompany?: string };
+export type Check = { ok: boolean; t: string; info?: boolean; field?: 'cp' | 'no' | 'date' | 'sum' | 'acc'; addCompany?: string; dupOf?: number };
 export const blocking = (checks: Check[] = []) => checks.filter(c => !c.ok && !c.info);
 
 /** Ключові поля документа: лише їх сумнів зупиняє документ. Назва товару чи одиниця — ні. */
@@ -120,8 +121,15 @@ export function runChecks(r: Recognized, existing: Doc[], today = new Date(), co
   } else out.push({ ok: false, field: 'date', t: 'Не знайдено дату документа' });
 
   if (r.number) {
-    const dup = existing.find(x => x.no === r.number && ((code && x.edrpou === code) || x.cp === r.counterparty.name));
-    if (dup) out.push({ ok: false, field: 'no', t: `Схоже на дублікат: ${dup.type} № ${dup.no} вже є в системі` });
+    // дублікат: той самий номер і (той самий контрагент або та сама дата й сума). Назва контрагента може бути прочитана
+    // трохи інакше, тому порівнюємо за кодом, за прізвищем/назвою і окремо за датою й сумою
+    const ddmmR = r.date && /^\d{4}-\d{2}-\d{2}$/.test(r.date) ? `${r.date.slice(8, 10)}.${r.date.slice(5, 7)}` : '';
+    const normNo = (n: string) => n.replace(/\s/g, '').replace(/^№/, '');
+    const name = r.counterparty.name || '';
+    const dup = existing.find(x => normNo(x.no) === normNo(r.number!) && (
+      (code && x.edrpou === code) || x.cp === name || (!!name && sameSurname(x.cp, name)) ||
+      (!!ddmmR && x.date === ddmmR && (!x.y || x.y === r.date!.slice(0, 4)) && total != null && Math.abs(x.sum - total) < 0.01)));
+    if (dup) out.push({ ok: false, field: 'no', dupOf: dup.id, t: `Дублікат: ${dup.type} № ${dup.no} від ${dup.date}${dup.y ? '.' + dup.y : ''}, ${dup.cp} на ${money(dup.sum)} ₴ вже ${dup.st === 'ok' ? 'проведено' : 'завантажено'}` });
   } else out.push({ ok: false, field: 'no', t: 'Не знайдено номер документа' });
 
   if (r.currency && r.currency.toUpperCase() !== 'UAH' && r.currency !== '₴' && r.currency.toLowerCase() !== 'грн') {

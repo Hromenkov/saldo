@@ -57,7 +57,7 @@ export async function recognizeFile(file: File, company: string[], existing: Doc
   // відомий контрагент підставляється з довідника: назва й код як у вашому обліку, а не як прочитано
   const cpRead = r.counterparty.name || undefined;
   const readCode = (r.counterparty.edrpou || '').replace(/\D/g, '') || undefined;
-  const known = findParty(cpRead || null, readCode, existing);
+  const known = findParty(cpRead || null, readCode, existing, { items: r.items.map(it => it.name), total: r.total, number: r.number });
   if (known) { r.counterparty.name = known.name; if (!readCode && known.edrpou) r.counterparty.edrpou = known.edrpou; }
   const edrpou = (r.counterparty.edrpou || '').replace(/\D/g, '') || undefined;
   const pk = partyKey(edrpou, r.counterparty.name || undefined);
