@@ -2,6 +2,7 @@
 import type { Doc } from '../data';
 import { autoReady, postings, runChecks } from './checks';
 import { matchItem } from './nomenclature';
+import { checkLines, fitsKind, isCostAccount } from './chart';
 import { ruleFor } from './rules';
 import { ACCOUNTS } from './accounts';
 import type { RecognizeRequest, RecognizeResponse } from './schema';
@@ -63,13 +64,23 @@ export async function recognizeFile(file: File, company: string, existing: Doc[]
     else if (guess) checks.push({ ok: false, t: `Номенклатура: ${guess} з ${m.length} позицій зіставлено за схожою назвою, підтвердіть` });
     else checks.push({ ok: true, t: 'Номенклатура: усі позиції за збереженими прив’язками' });
   }
+  // план рахунків: рахунок має відповідати виду документа, витрати 23/91/92/93/949 затверджує бухгалтер
+  const accN = acc.split(' ')[0];
+  if (['purchase_goods', 'purchase_service', 'sale'].includes(r.kind)) {
+    if (!fitsKind(r.kind, acc)) checks.push({ ok: false, t: `Рахунок ${accN} не відповідає виду документа: ${r.kind === 'purchase_goods' ? 'для товарів 201, 281, 22 або 152' : r.kind === 'sale' ? 'для продажу 701, 702 або 703' : 'для послуг 23, 91, 92, 93 або 949'}` });
+    else if (!rule && isCostAccount(acc)) checks.push({ ok: false, t: `Рахунок витрат ${accN} запропоновано системою${r.account_sure ? '' : ' з сумнівом'}: розподіл між 23, 91, 92, 93 і 949 підтверджує бухгалтер` });
+    else if (!rule && !r.account_sure) checks.push({ ok: false, t: `Рахунок ${accN} визначено з сумнівом: підтвердіть` });
+  }
+  const lines = postings(r, acc);
+  const bad = checkLines(lines);
+  checks.push(bad.length ? { ok: false, t: 'План рахунків: ' + bad.map(b => b.t).join('; ') } : lines.length ? { ok: true, t: 'Проводки: рахунки з плану рахунків, кореспонденція допустима' } : { ok: true, t: 'Проводок немає' });
   if (rule) checks.unshift({ ok: true, t: `Рахунок ${acc.split(' ')[0]} за вашим правилом для цього контрагента` });
   const conf = Math.max(0, Math.min(100, Math.round(r.confidence)));
   return {
     id, type: r.doc_type, no: r.number || '—', cp: r.counterparty.name || 'Контрагент не визначений',
     date: ddmm(r.date), y: r.date?.slice(0, 4), sum: r.total ?? 0, vat: r.vat ?? 0,
     st: autoReady(checks, conf) ? 'new' : 'check', src: body.mime === 'application/pdf' ? 'PDF' : 'Фото', conf,
-    kind: r.kind === 'tax_invoice' ? 'pn' : r.kind, lines: postings(r, acc),
+    kind: r.kind === 'tax_invoice' ? 'pn' : r.kind, lines,
     acc, edrpou, checks, note: r.note || r.account_reason, items: r.items
   };
 }

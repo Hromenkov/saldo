@@ -133,7 +133,7 @@ export function postings(r: Recognized, acc: string): Doc['lines'] {
   switch (r.kind) {
     case 'sale':
       L.push(['361', a.startsWith('70') ? a : '702', total, 'Дохід від реалізації']);
-      if (vat) L.push([a.startsWith('70') ? a : '702', '643', vat, 'ПДВ зобов’язання']);
+      if (vat) L.push([a.startsWith('70') ? a : '702', '6412', vat, 'ПДВ зобов’язання (перша подія — відвантаження)']);
       break;
     case 'purchase_goods':
     case 'purchase_service':
