@@ -10,6 +10,9 @@ export type Doc = {
   acc?: string; edrpou?: string; checks?: { ok: boolean; t: string }[]; note?: string;
   /** номенклатура: найменування, кількість, одиниця, ціна, сума */
   items?: { name: string; qty: number | null; unit: string | null; price: number | null; amount: number | null; nom?: string }[];
+  /** підстава грошового документа (договір, заявка, рахунок, накладна, період) і стаття руху коштів */
+  refs?: { contract_no?: string | null; contract_date?: string | null; order_no?: string | null; invoice_no?: string | null; primary_no?: string | null; period?: string | null };
+  cf?: string;
 };
 export type BankRow = { d: string; cp: string; p: string; s: number; dt: string; kt: string; st: DocStatus };
 export type Question = { id: string; icon: string; title: string; meta: string[]; opts: [string, string][]; doc?: number };
@@ -31,7 +34,9 @@ export const DOCS: Doc[] = [
     checks: [{ ok: false, t: 'ТТН — не накладна і не акт: проводок не створює. Витрати на доставку проведемо за актом Нової пошти' }],
     lines: [] },
   { id: 6, type: 'Податкова накладна (вхідна)', no: '96', cp: 'ТОВ «Логістик-Захід»', date: '16.11', sum: 5208.33, vat: 5208.33, st: 'new', src: 'ЄРПН', conf: 99, kind: 'pn',
-    lines: [['6442', '6441', 5208.33, 'Податковий кредит підтверджено ПН']] }
+    lines: [['6442', '6441', 5208.33, 'Податковий кредит підтверджено ПН']] },
+  { id: 7, type: 'Нарахування зарплати за жовтень', no: '10', cp: 'Відомість персоналу', date: '31.10', sum: 29280, vat: 0, st: 'ok', src: 'Сальдо', conf: 100, kind: 'payroll',
+    lines: [['93', '661', 24000, 'Зарплата бариста'], ['93', '651', 5280, 'ЄСВ 22%'], ['661', '6411', 4320, 'ПДФО 18%'], ['661', '642', 1200, 'Військовий збір 5%']] }
 ];
 
 export const BANK: BankRow[] = [
