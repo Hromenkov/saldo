@@ -5,8 +5,9 @@ import { Overview } from './views/Overview';
 import { Questions, Docs, Bank, Ledger, Close, Reports } from './views/Pages';
 import { Ops } from './views/Ops';
 import { Structure } from './views/Structure';
+import { Payroll } from './views/Payroll';
 
-const VIEWS = { overview: Overview, questions: Questions, docs: Docs, bank: Bank, ledger: Ledger, close: Close, reports: Reports, ops: Ops, structure: Structure };
+const VIEWS = { overview: Overview, questions: Questions, docs: Docs, bank: Bank, ledger: Ledger, close: Close, reports: Reports, ops: Ops, structure: Structure, payroll: Payroll };
 
 export function Main() {
   const { s } = useApp();

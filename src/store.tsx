@@ -4,7 +4,7 @@ import { BANK, CLOSE, DOCS, HISTORY, LEDGER, QUESTIONS, REPORTS, type Biz, type 
 import { INITIAL_CHAT, type Msg } from './chat';
 
 export type Role = 'owner' | 'acc';
-export type View = 'overview' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'structure';
+export type View = 'overview' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'structure' | 'payroll';
 export type Sheet = { kind: 'doc'; id: number } | { kind: 'op'; i: number };
 export type Dialog = { kind: 'sign'; name: string; per: string } | { kind: 'upload' } | { kind: 'plan' };
 
@@ -41,6 +41,7 @@ export const NAV: Record<Role, [View, string, string, ((s: State) => number | ''
     ['bank', 'account_balance', 'Банк', s => s.bank.filter(b => b.st !== 'ok').length || ''],
     ['questions', 'contact_support', 'Питання власнику', s => s.questions.length || ''],
     ['ops', 'account_tree', 'Типові операції'],
+    ['payroll', 'badge', 'Зарплата'],
     ['ledger', 'table_view', 'Оборотно-сальдова'],
     ['close', 'event_available', 'Закриття місяця'],
     ['structure', 'schema', 'Структура і зміни'],
