@@ -4,6 +4,7 @@ import { recognizeFile } from '../recognize/client';
 import { saveRule } from '../recognize/rules';
 import { checkLines, fitsKind } from '../recognize/chart';
 import { basisChain, cashFlowArticle, CF_ARTICLES } from '../recognize/basis';
+import { allocate, balances, movements, reconciliation, withAdvances } from '../recognize/settlements';
 import { activeItems, bindItem, catalog, matchItem, mergeFromBas } from '../recognize/nomenclature';
 import { import1c, is1cFile, type Imported } from '../import1c';
 import { CHANGE_TYPES, OPS, type Doc } from '../data';
@@ -11,7 +12,7 @@ import { useApp } from '../store';
 import { cx, fmt, ModeChip, Ms, plural, StatusChip } from '../lib';
 
 function DocSheet({ id }: { id: number }) {
-  const { s, upd, snack, closeSheet, openSheet } = useApp();
+  const { s, upd, snack, closeSheet, openSheet, openDialog } = useApp();
   const [cfSel, setCfSel] = useState<string>();
   const [pick, setPick] = useState<Record<number, string>>({});
   const [accSel, setAccSel] = useState<string>();
@@ -31,7 +32,14 @@ function DocSheet({ id }: { id: number }) {
   const accNow = accSel ?? d.acc;
   // зміна рахунку в картці одразу переписує проводки: старий номер рахунку замінюється новим
   const oldN = d.acc?.split(' ')[0], newN = accNow?.split(' ')[0];
-  const lines: Doc['lines'] = oldN && newN && oldN !== newN ? d.lines.map(l => [l[0] === oldN ? newN : l[0], l[1] === oldN ? newN : l[1], l[2], l[3]]) : d.lines;
+  const baseLines: Doc['lines'] = oldN && newN && oldN !== newN ? d.lines.map(l => [l[0] === oldN ? newN : l[0], l[1] === oldN ? newN : l[1], l[2], l[3]]) : d.lines;
+  // взаєморозрахунки: аванси цього контрагента зараховуються при проведенні накладної чи акта
+  const party = { cp: d.cp, edrpou: d.edrpou };
+  const isPrimaryDoc = d.lines.some(l => l[1] === '631' || l[0] === '361');
+  const movsOther = isPrimaryDoc ? movements(party, s.docs.filter(x => x.id !== d.id), s.bank) : [];
+  const balOther = balances(movsOther);
+  const lines: Doc['lines'] = isPrimaryDoc && d.st !== 'ok' ? withAdvances({ ...d, lines: baseLines }, balOther) : baseLines;
+  const alloc = isPrimaryDoc ? (() => { const a = allocate(movements(party, s.docs, s.bank)); return [...a.supplier, ...a.customer].find(x => x.docId === d.id); })() : undefined;
   const lineIssues = checkLines(lines);
   // грошові документи: підстава і стаття руху коштів перераховуються від обраного рахунку
   const money = /^(cash|payment)_/.test(d.kind);
@@ -98,6 +106,17 @@ function DocSheet({ id }: { id: number }) {
             <label htmlFor="f-cf">Стаття руху грошових коштів</label><Ms className="trail-ic">arrow_drop_down</Ms>
             {cfSel && cfSel !== cfAuto && <div className="support">За рахунком {accNow?.split(' ')[0]} стаття: {cfAuto}</div>}
           </div>
+        </div>}
+        {isPrimaryDoc && <div>
+          <div className="title-s" style={{ marginBottom: 8 }}>Розрахунки з контрагентом</div>
+          <ul className="checks body-m">
+            {alloc ? <li><Ms style={alloc.rest > 0 ? { color: 'var(--md-error)' } : undefined}>{alloc.rest > 0 ? 'schedule' : 'check_circle'}</Ms>
+              <span>{alloc.rest > 0 ? `Сплачено ${fmt(alloc.paid)} з ${fmt(alloc.total)} ₴, залишок ${fmt(alloc.rest)} ₴` : `Сплачено повністю, ${fmt(alloc.total)} ₴`}
+                {alloc.payments.map((p, i) => <div key={i} className="body-s muted">{p.title}: {fmt(p.amount)} ₴</div>)}</span></li>
+              : <li><Ms>info</Ms><span>Оплати розподіляться на документ після проведення</span></li>}
+            {d.st !== 'ok' && lines.some(l => l[3].startsWith('Залік')) && <li><Ms>sync_alt</Ms><span>Є аванс цього контрагента: у проводки додано залік{lines.some(l => l[1] === '643') ? ', ПДВ на покриту авансом частину вже нараховано першою подією (643)' : ''}</span></li>}
+          </ul>
+          <button className="btn btn-text sl" style={{ marginTop: 4 }} onClick={() => openDialog({ kind: 'act', cp: d.cp, edrpou: d.edrpou })}><Ms>fact_check</Ms>Акт звірки з {d.cp}</button>
         </div>}
         {d.items && d.items.length > 0 && <div>
           <div className="title-s" style={{ marginBottom: 8 }}>Номенклатура</div>
@@ -283,6 +302,25 @@ function PlanDialog() {
   );
 }
 
+function ActDialog({ cp, edrpou }: { cp: string; edrpou?: string }) {
+  const { s, hideDialog } = useApp();
+  const movs = movements({ cp, edrpou }, s.docs, s.bank);
+  const act = reconciliation(movs);
+  const b = balances(movs);
+  return (
+    <>
+      <Ms className="d-ic">fact_check</Ms>
+      <h2 className="headline-s">Акт звірки: {cp}</h2>
+      <div className="posting" style={{ maxHeight: 340, overflow: 'auto' }}><table><thead><tr><th>Дата</th><th>Документ</th><th className="r">Дебет, ₴</th><th className="r">Кредит, ₴</th></tr></thead>
+        <tbody>{act.rows.map((r, i) => <tr key={i}><td>{r.date}</td><td className="body-s">{r.title}</td><td className="r">{r.debit ? fmt(r.debit) : ''}</td><td className="r">{r.credit ? fmt(r.credit) : ''}</td></tr>)}
+          <tr><td /><td><b>Обороти</b></td><td className="r"><b>{fmt(act.debit)}</b></td><td className="r"><b>{fmt(act.credit)}</b></td></tr></tbody></table></div>
+      <p className="body-m" style={{ margin: 0 }}>{act.balance > 0 ? `${cp} винен нам ${fmt(act.balance)} ₴` : act.balance < 0 ? `Ми винні ${cp} ${fmt(-act.balance)} ₴` : 'Заборгованості немає'}
+        {(b.advGiven > 0 || b.advGot > 0) && <span className="muted">{b.advGiven > 0 ? `, з них аванс виданий ${fmt(b.advGiven)} ₴` : ''}{b.advGot > 0 ? `, з них аванс отриманий ${fmt(b.advGot)} ₴` : ''}</span>}</p>
+      <div className="actions"><button className="btn btn-text sl" onClick={() => window.print()}>Друкувати</button><button className="btn btn-text sl" onClick={hideDialog}>Закрити</button></div>
+    </>
+  );
+}
+
 export function Overlays() {
   const { s, closeSheet, hideDialog, snackState, closeSnack } = useApp();
   useEffect(() => {
@@ -302,6 +340,7 @@ export function Overlays() {
         {dl?.kind === 'sign' && <SignDialog key={s.overlaySeq} name={dl.name} per={dl.per} />}
         {dl?.kind === 'upload' && <UploadDialog key={s.overlaySeq} />}
         {dl?.kind === 'plan' && <PlanDialog key={s.overlaySeq} />}
+        {dl?.kind === 'act' && <ActDialog key={s.overlaySeq} cp={dl.cp} edrpou={dl.edrpou} />}
       </div></div>
       <div className={cx('snack', snackState.open && 'open')} id="snack" role="status">
         <span id="snackTxt">{snackState.text}</span>

@@ -1,6 +1,7 @@
 // Перевірка плану рахунків: усі шаблони операцій, демо-документи і типові проводки розпізнавання
 // мають використовувати рахунки з плану і допустимі кореспонденції. Запуск: npm test
-import { OPS, DOCS } from '../src/data';
+import { OPS, DOCS, BANK, type Doc } from '../src/data';
+import { allocate, balances, movements, reconciliation, withAdvances, refNo } from '../src/recognize/settlements';
 import { CHART, checkLines, fitsKind, purposeAccount, TAX_PURPOSE } from '../src/recognize/chart';
 import { ruleKey } from '../src/recognize/rules';
 import { basisChain, cashFlowArticle, monthOf } from '../src/recognize/basis';
@@ -79,6 +80,38 @@ ok(checkLines([['6412', '311', 0, '']]).length > 0, 'ПДВ з поточног�
 ok(cashFlowArticle('payment_out', '651') === 'Витрачання на оплату відрахувань на соціальні заходи', 'Стаття ДДС для ЄСВ');
 ok(cashFlowArticle('payment_in', '681') === 'Надходження авансів від покупців і замовників', 'Стаття ДДС для авансу від покупця');
 ok(cashFlowArticle('payment_out', '315')!.startsWith('Внутрішнє'), 'Поповнення рахунку ПДВ — внутрішнє переміщення');
+
+// взаєморозрахунки
+ok(refNo('Оплата за товар згідно рах. 418') === '418' && refNo('Оплата за послуги згідно акту 77') === '77', 'Номер документа з призначення платежу');
+const agro = movements({ cp: 'ТОВ «Агроресурс»' }, DOCS, BANK);
+const agroAlloc = allocate(agro).customer.find(a => a.title.endsWith('№ 418'))!;
+ok(agroAlloc.rest === 0 && agroAlloc.paid === 48600, 'Оплата 48 600 з банку повністю закриває реалізацію № 418');
+const kov = allocate(movements({ cp: 'ФОП Коваленко І.' }, DOCS, BANK)).supplier[0];
+ok(kov.rest === 0, 'Оплата акта № 77 Коваленку закриває його');
+const r = reconciliation(agro);
+ok(r.balance === 0 && r.debit === 48600 && r.credit === 48600, 'Акт звірки з Агроресурсом: обороти 48 600 / 48 600, сальдо 0');
+
+const log = DOCS.find(d => d.no === '1532')!;
+ok(!withAdvances(log, balances(movements({ cp: log.cp }, DOCS.filter(d => d.id !== log.id), BANK))).some(l => l[3].startsWith('Залік')), 'Звичайна оплата за актом (Дт 631) не створює залік авансу');
+
+// аванс постачальнику, потім накладна: залік Дт 631 Кт 371
+const sup: Doc[] = [{ id: 901, type: 'Платіжна інструкція', no: 'П1', cp: 'ТОВ «Тест»', date: '01.11', sum: 1000, vat: 0, st: 'ok', src: '', conf: 100, kind: 'payment_out', lines: [['371', '311', 1000, '']] }];
+const nakl: Doc = { id: 902, type: 'Видаткова накладна', no: 'Н1', cp: 'ТОВ «Тест»', date: '05.11', sum: 1200, vat: 200, st: 'new', src: '', conf: 100, kind: 'purchase_goods', lines: [['201', '631', 1000, ''], ['6441', '631', 200, '']] };
+const bSup = balances(movements({ cp: 'ТОВ «Тест»' }, sup, []));
+ok(bSup.advGiven === 1000, 'Виданий аванс 1000 видно в сальдо 371');
+const wl = withAdvances(nakl, bSup);
+ok(wl.some(l => l[0] === '631' && l[1] === '371' && l[2] === 1000), 'Накладна після авансу: залік Дт 631 Кт 371 1000');
+ok(!checkLines(wl).length, 'Проводки заліку допустимі в плані рахунків');
+const after = allocate(movements({ cp: 'ТОВ «Тест»' }, [...sup, { ...nakl, st: 'ok', lines: wl }], [])).supplier[0];
+ok(after.paid === 1000 && after.rest === 200, 'Накладна 1200 після авансу 1000: залишок 200');
+
+// аванс від покупця, потім відвантаження: Дт 681 Кт 361 і ПДВ закриває 643
+const cust: Doc[] = [{ id: 903, type: 'Платіжна інструкція', no: 'В1', cp: 'ТОВ «Гість»', date: '01.11', sum: 6000, vat: 1000, st: 'ok', src: '', conf: 100, kind: 'payment_in', lines: [['311', '681', 6000, ''], ['643', '6412', 1000, 'ПДВ з авансу']] }];
+const sale6: Doc = { id: 904, type: 'Акт наданих послуг', no: 'А1', cp: 'ТОВ «Гість»', date: '05.11', sum: 6000, vat: 1000, st: 'new', src: '', conf: 100, kind: 'sale', lines: [['361', '703', 6000, ''], ['703', '6412', 1000, '']] };
+const ws = withAdvances(sale6, balances(movements({ cp: 'ТОВ «Гість»' }, cust, [])));
+ok(ws.some(l => l[0] === '681' && l[1] === '361' && l[2] === 6000), 'Реалізація після авансу: залік Дт 681 Кт 361');
+ok(ws.some(l => l[0] === '703' && l[1] === '643' && l[2] === 1000) && !ws.some(l => l[1] === '6412'), 'ПДВ першою подією: Дт 703 Кт 643, повторного 6412 немає');
+ok(!checkLines(ws).length, 'Проводки реалізації з авансом допустимі');
 
 // ланцюжки капіталу, ОЗ, кредитів, валюти і прибутку
 ok(!checkLines([['46', '40', 0, ''], ['311', '46', 0, '']]).length, 'Статутний капітал: Дт 46 Кт 40, Дт 311 Кт 46');
