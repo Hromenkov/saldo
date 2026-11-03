@@ -2,7 +2,9 @@
 import type { Doc } from '../data';
 import { autoReady, postings, runChecks } from './checks';
 import { matchItem } from './nomenclature';
-import { checkLines, fitsKind, isCostAccount } from './chart';
+import { checkLines, fitsKind, isCostAccount, purposeAccount, TAX_PURPOSE } from './chart';
+import { isMoneyKind } from './accounts';
+import { basisChain, cashFlowArticle } from './basis';
 import { ruleFor } from './rules';
 import { ACCOUNTS } from './accounts';
 import type { RecognizeRequest, RecognizeResponse } from './schema';
@@ -52,7 +54,7 @@ export async function recognizeFile(file: File, company: string, existing: Doc[]
 
   const r = data.result;
   const edrpou = (r.counterparty.edrpou || '').replace(/\D/g, '') || undefined;
-  const rule = ruleFor(edrpou);
+  const rule = ruleFor(edrpou, r.kind);
   const acc = rule && (ACCOUNTS as readonly string[]).includes(rule) ? rule : r.account;
   const checks = runChecks(r, existing, new Date(), company);
   if (body.side && body.side < 1200) checks.push({ ok: false, t: `Фото дрібне (${body.side} px): цифри можуть читатися з помилками, краще сфотографувати ближче` });
@@ -66,10 +68,32 @@ export async function recognizeFile(file: File, company: string, existing: Doc[]
   }
   // план рахунків: рахунок має відповідати виду документа, витрати 23/91/92/93/949 затверджує бухгалтер
   const accN = acc.split(' ')[0];
-  if (['purchase_goods', 'purchase_service', 'sale'].includes(r.kind)) {
+  if (isMoneyKind(r.kind)) {
+    const tax = TAX_PURPOSE[accN];
+    if (!fitsKind(r.kind, acc)) checks.push({ ok: false, t: `Рахунок ${accN} не підходить для ${r.kind.startsWith('cash') ? 'касового ордера' : 'платіжки'}: оберіть кореспондуючий рахунок` });
+    else if (tax) {
+      // податки й зарплата: рахунок має збігатися з призначенням платежу, і бухгалтер підтверджує завжди.
+      // Податок важливіший за слово «зарплата»: «ПДФО із зарплати» — це 6411, а не 661.
+      const p = r.purpose || '';
+      const byPurpose = purposeAccount(p);
+      if (byPurpose === accN) checks.push({ ok: false, t: `Рахунок ${accN} відповідає призначенню платежу. Податкові й зарплатні платежі підтверджує бухгалтер` });
+      else checks.push({ ok: false, t: `Рахунок ${accN} не збігається з призначенням «${p || 'не знайдено'}»` + (byPurpose ? `: за призначенням це рахунок ${byPurpose}` : ': перевірте, який це платіж') });
+    } else if (!rule && !r.account_sure) checks.push({ ok: false, t: `Рахунок ${accN} визначено з сумнівом: підтвердіть` });
+    else if (!rule) checks.push({ ok: false, t: `Кореспондуючий рахунок ${accN} запропоновано системою: підтвердіть, далі для цього контрагента діятиме правило` });
+  } else if (['purchase_goods', 'purchase_service', 'sale'].includes(r.kind)) {
     if (!fitsKind(r.kind, acc)) checks.push({ ok: false, t: `Рахунок ${accN} не відповідає виду документа: ${r.kind === 'purchase_goods' ? 'для товарів 201, 281, 22 або 152' : r.kind === 'sale' ? 'для продажу 701, 702 або 703' : 'для послуг 23, 91, 92, 93 або 949'}` });
     else if (!rule && isCostAccount(acc)) checks.push({ ok: false, t: `Рахунок витрат ${accN} запропоновано системою${r.account_sure ? '' : ' з сумнівом'}: розподіл між 23, 91, 92, 93 і 949 підтверджує бухгалтер` });
     else if (!rule && !r.account_sure) checks.push({ ok: false, t: `Рахунок ${accN} визначено з сумнівом: підтвердіть` });
+  }
+  // підстава платежу: договір → заявка/рахунок → накладна/акт/реалізація або нарахування для податків
+  const refs = r.refs;
+  if (isMoneyKind(r.kind)) {
+    const chain = basisChain({ id, kind: r.kind, acc, edrpou, cp: r.counterparty.name || '', sum: r.total ?? 0, refs }, existing);
+    for (const st of chain) {
+      if (!st.ok) checks.push({ ok: false, t: `Підстава: ${st.label.toLowerCase()} ${st.text}` });
+      if (st.note) checks.push({ ok: false, t: st.note });
+    }
+    if (chain.length && chain.every(st => st.ok && !st.note)) checks.push({ ok: true, t: 'Підставу платежу знайдено: ' + chain.map(st => st.label.toLowerCase()).join(' → ') });
   }
   const lines = postings(r, acc);
   const bad = checkLines(lines);
@@ -81,6 +105,7 @@ export async function recognizeFile(file: File, company: string, existing: Doc[]
     date: ddmm(r.date), y: r.date?.slice(0, 4), sum: r.total ?? 0, vat: r.vat ?? 0,
     st: autoReady(checks, conf) ? 'new' : 'check', src: body.mime === 'application/pdf' ? 'PDF' : 'Фото', conf,
     kind: r.kind === 'tax_invoice' ? 'pn' : r.kind, lines,
-    acc, edrpou, checks, note: r.note || r.account_reason, items: r.items
+    acc, edrpou, checks, note: [r.purpose && `Призначення: ${r.purpose}`, r.note || r.account_reason].filter(Boolean).join('. '), items: r.items,
+    refs, cf: cashFlowArticle(r.kind, acc)
   };
 }

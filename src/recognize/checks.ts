@@ -57,7 +57,9 @@ export function runChecks(r: Recognized, existing: Doc[], today = new Date(), co
   } else if (code.length === 12) {
     out.push({ ok: true, t: `ІПН платника ПДВ ${code}: 12 цифр, звірте з реєстром платників ПДВ` });
   } else if (!code) {
-    if (r.kind !== 'receipt') out.push({ ok: false, t: 'На документі не знайдено ЄДРПОУ або ІПН контрагента' });
+    // у ПКО і РКO з фізособою (підзвіт, зарплата) коду може не бути
+    const person = (r.kind === 'cash_in' || r.kind === 'cash_out') && /^(372|661)/.test(r.account);
+    if (r.kind !== 'receipt' && !person) out.push({ ok: false, t: 'На документі не знайдено ЄДРПОУ або ІПН контрагента' });
   } else if (code.length === 8) {
     out.push(edrpouValid(code)
       ? { ok: true, t: `ЄДРПОУ ${code}: контрольна сума вірна` }
@@ -112,6 +114,7 @@ export function runChecks(r: Recognized, existing: Doc[], today = new Date(), co
 
   const NOT_POSTING: Partial<Record<Recognized['kind'], string>> = {
     invoice: 'Рахунок на оплату — не первинний документ: проводки будуть за накладною або актом',
+    order: 'Заявка (замовлення) — не первинний документ: проводки будуть за накладною або актом',
     tax_invoice: 'Податкова накладна — податковий документ: проводок не створює, звіримо з ЄРПН',
     receipt: 'Чек — додаток до авансового звіту: проводок не створює',
     other: 'Це не накладна і не акт: проводок не створює'
@@ -140,8 +143,23 @@ export function postings(r: Recognized, acc: string): Doc['lines'] {
       L.push([a, '631', net, r.kind === 'purchase_goods' ? 'Оприбутковано від постачальника' : 'Витрати за документом постачальника']);
       if (vat) L.push(['6441', '631', vat, 'ПДВ до отримання ПН']);
       break;
+    // гроші: ПКО і РКО через касу 301, платіжки через рахунок 311; сума — всього до сплати, ПДВ окремо не проводиться
+    case 'cash_in':
+      L.push(['301', a, total, 'ПКО: надходження в касу']);
+      break;
+    case 'cash_out':
+      L.push([a, '301', total, 'РКО: видача з каси']);
+      break;
+    case 'payment_in':
+      L.push(['311', a, total, 'Надходження на поточний рахунок']);
+      if (a === '681' && vat) L.push(['643', '6412', vat, 'ПДВ з отриманого авансу']);
+      break;
+    case 'payment_out':
+      // ПДВ сплачується лише з електронного рахунку ПДВ (315), не з поточного
+      L.push([a, a === '6412' ? '315' : '311', total, a === '6412' ? 'Сплата ПДВ з електронного рахунку' : 'Оплата з поточного рахунку']);
+      break;
     default:
-      break; // проводки лише за накладною або актом; рахунок, ПН, ТТН, чек їх не створюють
+      break; // товари й послуги проводяться лише за накладною або актом; рахунок, заявка, ПН, ТТН, чек проводок не створюють
   }
   return L;
 }
