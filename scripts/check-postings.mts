@@ -5,7 +5,8 @@ import { allocate, balances, movements, reconciliation, withAdvances, refNo } fr
 import { CHART, checkLines, fitsKind, purposeAccount, TAX_PURPOSE } from '../src/recognize/chart';
 import { ruleKey } from '../src/recognize/rules';
 import { reconcile, consistency } from '../src/recognize/reconcile';
-import { fieldLabel } from '../src/recognize/checks';
+import { fieldLabel, runChecks, blocking, autoReady } from '../src/recognize/checks';
+import { sameParty, partyKey } from '../src/recognize/suppliers';
 import { basisChain, cashFlowArticle, monthOf } from '../src/recognize/basis';
 import { postings } from '../src/recognize/checks';
 import { ACCOUNTS } from '../src/recognize/accounts';
@@ -135,6 +136,36 @@ ok(!checkLines([['311', '601', 0, ''], ['951', '684', 0, ''], ['684', '311', 0, 
 ok(!checkLines([['632', '312', 0, ''], ['945', '632', 0, ''], ['632', '714', 0, '']]).length, 'Курсові різниці: 945 / 714');
 ok(!checkLines([['791', '441', 0, ''], ['443', '671', 0, ''], ['671', '6411', 0, ''], ['671', '642', 0, '']]).length, 'Розподіл прибутку і дивіденди з ПДФО та ВЗ');
 ok(checkLines([['40', '311', 0, '']]).length > 0, 'Виплата грошей зі статутного капіталу напряму відхиляється');
+
+// одна кнопка: зупиняє лише сумнів у ключових полях
+{
+  const n14 = { ...base, kind: 'purchase_goods', number: '14', date: '2026-08-22', counterparty: { name: 'ФОП Бригара О. І.', edrpou: null, vat_ipn: null },
+    items: [{ name: 'Сир Нарцис', qty: 17.7, unit: 'шт', price: 805, amount: 14248.5 }], net: 14248.5, vat: 0, total: 14248.5, vat_rate: null,
+    handwritten: true, uncertain: ['items[0].unit', 'items[0].name', 'net'], margin_notes: '063-173-37-42; XV; Лучаш' } as unknown as Recognized;
+  const today = new Date('2026-11-03');
+  const agreed = runChecks(n14, [], today, '', { passes: 2, diff: [] });
+  ok(blocking(agreed).length === 0 && autoReady(agreed), 'Накладна № 14: два читання збіглися, сумнів моделі в назві/одиниці/сумі не зупиняє документ, приписка не перевіряється');
+  const split = runChecks(n14, [], today, '', { passes: 2, diff: ['items[0].qty', 'items[0].name'] });
+  const b = blocking(split);
+  ok(b.length === 1 && b[0].field === 'sum', 'Читання розійшлися в кількості: зупиняє лише сума, назва товару — ні');
+  const pdf = runChecks({ ...n14, uncertain: ['date', 'items[0].unit'] } as Recognized, [], today, '', { passes: 1 });
+  ok(blocking(pdf).map(c => c.field).join() === 'date', 'Одне читання (PDF): сумнів у даті підсвічує дату, одиниця — довідка');
+  const arith = runChecks({ ...n14, net: 14000 } as Recognized, [], today, '', { passes: 2, diff: [] });
+  ok(blocking(arith).some(c => c.field === 'sum'), 'Арифметика не сходиться — сума підсвічується навіть при збігу читань');
+  const notPosting = runChecks({ ...n14, kind: 'invoice' } as Recognized, [], today, 'ТОВ «Інша»', { passes: 2, diff: [] });
+  ok(blocking(notPosting).length === 0, 'Рахунок без проводок і чужа «наша сторона» — довідка, а не зупинка');
+}
+{
+  const inv = { ...base, kind: 'invoice', number: '783', counterparty: { name: 'ФОП Васильєва', edrpou: '3012345678', vat_ipn: null }, our_side: { name: 'ФОП Кеню', code: null },
+    net: 4500, vat: 0, total: 4500, vat_rate: null, uncertain: ['account'] } as unknown as Recognized;
+  const c = runChecks(inv, [], new Date('2026-11-03'), ['ТОВ «Приклад»'], { passes: 2, diff: [] });
+  ok(blocking(c).filter(x => !/ІПН|ЄДРПОУ/.test(x.t)).length === 0, 'Рахунок-фактура № 783: рахунок обліку не питаємо (проводок немає), «не первинний» — довідка, інший покупець — кнопка, а не червоний пункт');
+  ok(c.some(x => x.addCompany === 'ФОП Кеню') && !c.some(x => /рахунок обліку/.test(x.t)), 'Пропонуємо додати ФОП Кеню як нашу компанію; сумнів у рахунку обліку для рахунку-фактури не показується');
+  ok(blocking(runChecks(inv, [], new Date('2026-11-03'), ['ТОВ «Приклад»', 'ФОП Кеню'], { passes: 2, diff: [] })).filter(x => !/ІПН|ЄДРПОУ/.test(x.t)).length === 0 && !runChecks(inv, [], new Date('2026-11-03'), ['ТОВ «Приклад»', 'ФОП Кеню']).some(x => x.addCompany), 'Після додавання ФОП Кеню документ визнається нашим');
+}
+ok(sameParty('ФОП Бригара О. І.', 'ф/п Бригар О.І.') && sameParty('ТОВ «Метро Кеш енд Кері»', 'Метро Кеш енд Кері') && !sameParty('ФОП Бригара О. І.', 'ФОП Бригадир В. П.') && !sameParty('ФОП Іваненко А. Б.', 'ФОП Іваненко В. Г.'),
+  'Довідник контрагентів: той самий ФОП під різним написанням, різні — різні');
+ok(partyKey(undefined, 'ф/п Бригар О.І.') === partyKey(undefined, 'ФОП  Бригар О. І.') && partyKey('12345678', 'x') === '12345678', 'Ключ контрагента без коду — за назвою, з кодом — код');
 
 console.log(fails ? `\nПомилок: ${fails}` : '\nУсі перевірки плану рахунків пройдено');
 process.exit(fails ? 1 : 0);

@@ -11,6 +11,7 @@ function load(): Rules {
 /** Ключ правила: для грошових документів окремо за видом, щоб правило «201» для постачальника не потрапило в платіжку. */
 export const ruleKey = (edrpou: string, kind: string) => /^(cash|payment)_/.test(kind) ? `${edrpou}|${kind}` : edrpou;
 
+/** edrpou — ключ контрагента: код або, для ФОП без коду, нормалізована назва (partyKey). */
 export const ruleFor = (edrpou?: string, kind = '') => (edrpou ? load()[ruleKey(edrpou, kind)] : undefined);
 
 export function saveRule(edrpou: string, acc: string, kind = '') {
