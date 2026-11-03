@@ -7,16 +7,20 @@ import { basisChain, cashFlowArticle, CF_ARTICLES } from '../recognize/basis';
 import { allocate, balances, movements, reconciliation, withAdvances } from '../recognize/settlements';
 import { activeItems, bindItem, catalog, matchItem, mergeFromBas } from '../recognize/nomenclature';
 import { import1c, is1cFile, type Imported } from '../import1c';
+import { getStock, receiveFromDoc, removeMovement } from '../stock/store';
 import { CHANGE_TYPES, OPS, type Doc } from '../data';
 import { useApp } from '../store';
 import { AssetSheet } from '../views/Assets';
 import { cx, fmt, ModeChip, Ms, plural, StatusChip } from '../lib';
+
+const stocked = (acc: string) => ['201', '281', '22'].includes(acc.split(' ')[0]);
 
 function DocSheet({ id }: { id: number }) {
   const { s, upd, snack, closeSheet, openSheet, openDialog } = useApp();
   const [cfSel, setCfSel] = useState<string>();
   const [pick, setPick] = useState<Record<number, string>>({});
   const [accSel, setAccSel] = useState<string>();
+  const [stockLoc, setStockLoc] = useState(() => getStock().locations[0]?.id || '');
   // після «Відхилити» документа вже немає в списку, але панель ще виїжджає: показуємо останній стан
   const last = useRef<Doc | undefined>(undefined);
   const d = s.docs.find(x => x.id === id) || last.current;
@@ -56,15 +60,27 @@ function DocSheet({ id }: { id: number }) {
     // підтверджений рахунок стає правилом для цього контрагента
     if (d.edrpou && acc && d.checks) saveRule(d.edrpou, acc, d.kind);
     // прив'язки рядків постачальника до нашого довідника запам'ятовуються для наступних накладних
-    const noms = goods ? d.items!.map((it, i) => {
+    const ids = goods ? d.items!.map((it, i) => {
       const c = choiceOf(i);
-      if (c === 'done') return it.nom;
-      const nid = bindItem(d.edrpou, it.name, c, it.unit);
-      return catalog().find(x => x.id === nid)?.name;
+      if (c === 'done') return catalog().find(x => x.name === it.nom)?.id || '';
+      return bindItem(d.edrpou, it.name, c, it.unit);
     }) : [];
+    const noms = ids.map(nid => catalog().find(x => x.id === nid)?.name);
+    // товари надходять на склад партією за ціною без ПДВ; рахунки 152–154 склад не веде
+    const toStock = goods && acc && stocked(acc);
+    if (toStock) {
+      const [dd, mm] = d.date.split('.');
+      const r = receiveFromDoc(d.id, `${d.type} № ${d.no}, ${d.cp}`, `${d.y || '2026'}-${mm}-${dd}`, stockLoc, acc!, d.items!.map((it, i) => ({ item: ids[i], qty: it.qty, price: it.price, amount: it.amount })));
+      if (r.error) { snack(r.error); return; }
+    }
     upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) { dd.st = 'ok'; dd.lines = lines; if (acc) dd.acc = acc; if (money) dd.cf = cfNow; if (goods) dd.items!.forEach((it, i) => { it.nom = noms[i]; }); } });
     closeSheet();
-    snack(`${d.type} № ${d.no} проведено`, () => upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) dd.st = prev; }));
+    snack(`${d.type} № ${d.no} проведено` + (toStock ? `, товар надійшов на «${getStock().locations.find(l => l.id === stockLoc)?.name}»` : ''), () => {
+      // скасувати надходження не можна, якщо з нього вже списали: тоді документ лишається проведеним
+      const e = toStock ? removeMovement('doc' + d.id) : null;
+      if (e) { snack(e); return; }
+      upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) dd.st = prev; });
+    });
   };
   const reject = () => {
     const i = s.docs.findIndex(x => x.id === id);
@@ -94,6 +110,10 @@ function DocSheet({ id }: { id: number }) {
             <label htmlFor="f-acc">{/^(cash|payment)_/.test(d.kind) ? 'Кореспондуючий рахунок' : 'Рахунок витрат або доходу'}</label><Ms className="trail-ic">arrow_drop_down</Ms>
             {needs && <div className="support">{d.checks?.find(c => !c.ok && /^(Рахунок|Кореспондуючий)/.test(c.t))?.t || 'Система не впевнена: уточніть призначення'}</div>}
           </div>
+          {goods && accNow && stocked(accNow) && <div className="tf full">
+            <select id="f-loc" value={stockLoc} disabled={d.st === 'ok'} onChange={e => setStockLoc(e.target.value)}>{getStock().locations.map(l => <option key={l.id} value={l.id}>{l.name}</option>)}</select>
+            <label htmlFor="f-loc">Склад надходження</label><Ms className="trail-ic">arrow_drop_down</Ms>
+          </div>}
         </div>
         {money && <div>
           <div className="title-s" style={{ marginBottom: 8 }}>Підстава платежу</div>
