@@ -3,6 +3,7 @@
 import { OPS, DOCS } from '../src/data';
 import { CHART, checkLines, fitsKind, purposeAccount, TAX_PURPOSE } from '../src/recognize/chart';
 import { ruleKey } from '../src/recognize/rules';
+import { basisChain, cashFlowArticle, monthOf } from '../src/recognize/basis';
 import { postings } from '../src/recognize/checks';
 import { ACCOUNTS } from '../src/recognize/accounts';
 import type { Recognized } from '../src/recognize/schema';
@@ -60,6 +61,24 @@ ok(purposeAccount('ЄСВ із зарплати за жовтень') === '651',
 ok(purposeAccount('Оплата за товар згідно рах. 356') === undefined, 'Оплата постачальнику не є податком');
 ok(TAX_PURPOSE['651'].test('ЄСВ за жовтень 2026'), 'Призначення «ЄСВ» → 651');
 ok(ruleKey('12345678', 'payment_out') !== ruleKey('12345678', 'purchase_goods'), 'Правило для платіжок окреме від правила для накладних');
+
+// підстава платежу і статті ДДС
+const act = DOCS.find(d => d.no === '1532')!;
+const ch1 = basisChain({ id: 0, kind: 'payment_out', acc: '631', edrpou: undefined, cp: act.cp, sum: act.sum, refs: { contract_no: '7', primary_no: '1532' } }, DOCS);
+ok(ch1.find(s => s.label === 'Накладна або акт')?.docId === act.id, 'Платіжка постачальнику знаходить акт № 1532');
+const ch2 = basisChain({ id: 0, kind: 'payment_out', acc: '631', edrpou: undefined, cp: 'ТОВ «Новий»', sum: 500, refs: {} }, DOCS);
+ok(!!ch2.find(s => s.note?.includes('371')), 'Без накладної система підказує аванс 371');
+const ch3 = basisChain({ id: 0, kind: 'payment_out', acc: '6411', edrpou: undefined, cp: 'ГУ ДПС', sum: 4320, refs: { period: 'жовтень 2026' } }, DOCS);
+ok(ch3.every(s => s.ok), 'ПДФО 4320 за жовтень збігається з нарахуванням');
+const ch4 = basisChain({ id: 0, kind: 'payment_out', acc: '6411', edrpou: undefined, cp: 'ГУ ДПС', sum: 4000, refs: { period: 'жовтень 2026' } }, DOCS);
+ok(ch4.some(s => !s.ok), 'ПДФО 4000 замість 4320 позначається розбіжністю');
+ok(monthOf('за жовтень 2026') === 10 && monthOf('10.2026') === 10, 'Період «жовтень 2026» і «10.2026» → 10');
+ok(JSON.stringify(P('payment_out', '6412 Розрахунки з ПДВ').map(l => [l[0], l[1]])) === JSON.stringify([['6412', '315']]), 'ПДВ сплачується з електронного рахунку: Дт 6412 Кт 315');
+ok(JSON.stringify(P('payment_out', '315 Електронний рахунок ПДВ').map(l => [l[0], l[1]])) === JSON.stringify([['315', '311']]), 'Поповнення рахунку ПДВ: Дт 315 Кт 311');
+ok(checkLines([['6412', '311', 0, '']]).length > 0, 'ПДВ з поточного рахунку Дт 6412 Кт 311 відхиляється');
+ok(cashFlowArticle('payment_out', '651') === 'Витрачання на оплату відрахувань на соціальні заходи', 'Стаття ДДС для ЄСВ');
+ok(cashFlowArticle('payment_in', '681') === 'Надходження авансів від покупців і замовників', 'Стаття ДДС для авансу від покупця');
+ok(cashFlowArticle('payment_out', '315')!.startsWith('Внутрішнє'), 'Поповнення рахунку ПДВ — внутрішнє переміщення');
 
 // ланцюжки капіталу, ОЗ, кредитів, валюти і прибутку
 ok(!checkLines([['46', '40', 0, ''], ['311', '46', 0, '']]).length, 'Статутний капітал: Дт 46 Кт 40, Дт 311 Кт 46');

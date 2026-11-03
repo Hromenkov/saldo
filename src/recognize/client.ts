@@ -4,6 +4,7 @@ import { autoReady, postings, runChecks } from './checks';
 import { matchItem } from './nomenclature';
 import { checkLines, fitsKind, isCostAccount, purposeAccount, TAX_PURPOSE } from './chart';
 import { isMoneyKind } from './accounts';
+import { basisChain, cashFlowArticle } from './basis';
 import { ruleFor } from './rules';
 import { ACCOUNTS } from './accounts';
 import type { RecognizeRequest, RecognizeResponse } from './schema';
@@ -84,6 +85,16 @@ export async function recognizeFile(file: File, company: string, existing: Doc[]
     else if (!rule && isCostAccount(acc)) checks.push({ ok: false, t: `Рахунок витрат ${accN} запропоновано системою${r.account_sure ? '' : ' з сумнівом'}: розподіл між 23, 91, 92, 93 і 949 підтверджує бухгалтер` });
     else if (!rule && !r.account_sure) checks.push({ ok: false, t: `Рахунок ${accN} визначено з сумнівом: підтвердіть` });
   }
+  // підстава платежу: договір → заявка/рахунок → накладна/акт/реалізація або нарахування для податків
+  const refs = r.refs;
+  if (isMoneyKind(r.kind)) {
+    const chain = basisChain({ id, kind: r.kind, acc, edrpou, cp: r.counterparty.name || '', sum: r.total ?? 0, refs }, existing);
+    for (const st of chain) {
+      if (!st.ok) checks.push({ ok: false, t: `Підстава: ${st.label.toLowerCase()} ${st.text}` });
+      if (st.note) checks.push({ ok: false, t: st.note });
+    }
+    if (chain.length && chain.every(st => st.ok && !st.note)) checks.push({ ok: true, t: 'Підставу платежу знайдено: ' + chain.map(st => st.label.toLowerCase()).join(' → ') });
+  }
   const lines = postings(r, acc);
   const bad = checkLines(lines);
   checks.push(bad.length ? { ok: false, t: 'План рахунків: ' + bad.map(b => b.t).join('; ') } : lines.length ? { ok: true, t: 'Проводки: рахунки з плану рахунків, кореспонденція допустима' } : { ok: true, t: 'Проводок немає' });
@@ -94,6 +105,7 @@ export async function recognizeFile(file: File, company: string, existing: Doc[]
     date: ddmm(r.date), y: r.date?.slice(0, 4), sum: r.total ?? 0, vat: r.vat ?? 0,
     st: autoReady(checks, conf) ? 'new' : 'check', src: body.mime === 'application/pdf' ? 'PDF' : 'Фото', conf,
     kind: r.kind === 'tax_invoice' ? 'pn' : r.kind, lines,
-    acc, edrpou, checks, note: [r.purpose && `Призначення: ${r.purpose}`, r.note || r.account_reason].filter(Boolean).join('. '), items: r.items
+    acc, edrpou, checks, note: [r.purpose && `Призначення: ${r.purpose}`, r.note || r.account_reason].filter(Boolean).join('. '), items: r.items,
+    refs, cf: cashFlowArticle(r.kind, acc)
   };
 }

@@ -3,6 +3,7 @@ import { ACCOUNTS } from '../recognize/accounts';
 import { recognizeFile } from '../recognize/client';
 import { saveRule } from '../recognize/rules';
 import { checkLines, fitsKind } from '../recognize/chart';
+import { basisChain, cashFlowArticle, CF_ARTICLES } from '../recognize/basis';
 import { activeItems, bindItem, catalog, matchItem, mergeFromBas } from '../recognize/nomenclature';
 import { import1c, is1cFile, type Imported } from '../import1c';
 import { CHANGE_TYPES, OPS, type Doc } from '../data';
@@ -10,7 +11,8 @@ import { useApp } from '../store';
 import { cx, fmt, ModeChip, Ms, plural, StatusChip } from '../lib';
 
 function DocSheet({ id }: { id: number }) {
-  const { s, upd, snack, closeSheet } = useApp();
+  const { s, upd, snack, closeSheet, openSheet } = useApp();
+  const [cfSel, setCfSel] = useState<string>();
   const [pick, setPick] = useState<Record<number, string>>({});
   const [accSel, setAccSel] = useState<string>();
   // після «Відхилити» документа вже немає в списку, але панель ще виїжджає: показуємо останній стан
@@ -31,6 +33,11 @@ function DocSheet({ id }: { id: number }) {
   const oldN = d.acc?.split(' ')[0], newN = accNow?.split(' ')[0];
   const lines: Doc['lines'] = oldN && newN && oldN !== newN ? d.lines.map(l => [l[0] === oldN ? newN : l[0], l[1] === oldN ? newN : l[1], l[2], l[3]]) : d.lines;
   const lineIssues = checkLines(lines);
+  // грошові документи: підстава і стаття руху коштів перераховуються від обраного рахунку
+  const money = /^(cash|payment)_/.test(d.kind);
+  const chain = money ? basisChain({ ...d, acc: accNow }, s.docs) : [];
+  const cfAuto = money ? cashFlowArticle(d.kind, accNow) : undefined;
+  const cfNow = cfSel ?? (accSel === undefined && d.cf ? d.cf : cfAuto);
   const fit = ACCOUNTS.filter(a => fitsKind(d.kind, a));
   const accs: string[] = d.acc && !(fit as readonly string[]).includes(d.acc) ? [d.acc, ...fit] : [...fit];
   const codeCheck = d.checks?.find(c => /ЄДРПОУ|ІПН|Код контрагента/.test(c.t));
@@ -46,7 +53,7 @@ function DocSheet({ id }: { id: number }) {
       const nid = bindItem(d.edrpou, it.name, c, it.unit);
       return catalog().find(x => x.id === nid)?.name;
     }) : [];
-    upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) { dd.st = 'ok'; dd.lines = lines; if (acc) dd.acc = acc; if (goods) dd.items!.forEach((it, i) => { it.nom = noms[i]; }); } });
+    upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) { dd.st = 'ok'; dd.lines = lines; if (acc) dd.acc = acc; if (money) dd.cf = cfNow; if (goods) dd.items!.forEach((it, i) => { it.nom = noms[i]; }); } });
     closeSheet();
     snack(`${d.type} № ${d.no} проведено`, () => upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) dd.st = prev; }));
   };
@@ -79,6 +86,19 @@ function DocSheet({ id }: { id: number }) {
             {needs && <div className="support">{d.checks?.find(c => !c.ok && /^(Рахунок|Кореспондуючий)/.test(c.t))?.t || 'Система не впевнена: уточніть призначення'}</div>}
           </div>
         </div>
+        {money && <div>
+          <div className="title-s" style={{ marginBottom: 8 }}>Підстава платежу</div>
+          {chain.length ? <ul className="checks body-m">{chain.map((st, i) => <li key={i}>
+            <Ms style={st.ok && !st.note ? undefined : { color: 'var(--md-error)' }}>{st.ok && !st.note ? 'check_circle' : 'error'}</Ms>
+            <span><b>{st.label}:</b> {st.docId ? <a href="#" style={{ color: 'var(--md-primary)' }} onClick={e => { e.preventDefault(); openSheet({ kind: 'doc', id: st.docId! }); }}>{st.text}</a> : st.text}
+              {st.note && <div className="body-s" style={{ color: 'var(--md-error)' }}>{st.note}</div>}</span></li>)}</ul>
+            : <div className="body-s muted">Для цього рахунку підстава не потрібна</div>}
+          <div className="tf full" style={{ marginTop: 20 }}>
+            <select id="f-cf" value={cfNow} disabled={d.st === 'ok'} onChange={e => setCfSel(e.target.value)}>{CF_ARTICLES.map(o => <option key={o}>{o}</option>)}</select>
+            <label htmlFor="f-cf">Стаття руху грошових коштів</label><Ms className="trail-ic">arrow_drop_down</Ms>
+            {cfSel && cfSel !== cfAuto && <div className="support">За рахунком {accNow?.split(' ')[0]} стаття: {cfAuto}</div>}
+          </div>
+        </div>}
         {d.items && d.items.length > 0 && <div>
           <div className="title-s" style={{ marginBottom: 8 }}>Номенклатура</div>
           <div className="posting" style={{ overflowX: 'auto' }}><table><thead><tr><th>Як у постачальника</th>{goods && <th>Позиція нашого довідника</th>}<th className="r">К-сть</th><th>Од.</th><th className="r">Ціна, ₴</th><th className="r">Сума, ₴</th></tr></thead>
