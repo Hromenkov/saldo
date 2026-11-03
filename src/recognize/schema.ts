@@ -30,6 +30,7 @@ export const Recognized = z.object({
   vat_rate: z.number().nullable().describe('Ставка ПДВ у відсотках: 20, 14, 7 або 0; null, якщо ставок кілька'),
   currency: z.string().describe('Валюта, зазвичай UAH'),
   account: z.enum(ACCOUNTS).describe('Найімовірніший рахунок обліку для витрат або доходу за цим документом'),
+  account_sure: z.boolean().describe('true лише якщо зміст документа однозначно визначає рахунок; якщо сумнів між 23, 91, 92, 93, 949 або між 201, 22, 281, 152 — false'),
   account_reason: z.string().describe('Одне коротке речення українською, чому саме цей рахунок'),
   handwritten: z.boolean().describe('true, якщо номер, дата, суми або кількості на документі вписані від руки'),
   confidence: z.number().describe('Впевненість у розпізнаванні від 0 до 100'),

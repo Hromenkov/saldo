@@ -5,9 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b && tsx scripts/check-postings.mts && vite build",
     "preview": "vite preview",
-    "check:functions": "tsc -p tsconfig.functions.json"
+    "check:functions": "tsc -p tsconfig.functions.json",
+    "test": "tsx scripts/check-postings.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^1.4.0",
@@ -22,6 +23,7 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
+    "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vite": "^7.1.12"
   }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ACCOUNTS } from '../recognize/accounts';
 import { recognizeFile } from '../recognize/client';
 import { saveRule } from '../recognize/rules';
+import { checkLines, fitsKind } from '../recognize/chart';
 import { activeItems, bindItem, catalog, matchItem, mergeFromBas } from '../recognize/nomenclature';
 import { import1c, is1cFile, type Imported } from '../import1c';
 import { CHANGE_TYPES, OPS, type Doc } from '../data';
@@ -10,8 +11,8 @@ import { cx, fmt, ModeChip, Ms, plural, StatusChip } from '../lib';
 
 function DocSheet({ id }: { id: number }) {
   const { s, upd, snack, closeSheet } = useApp();
-  const accRef = useRef<HTMLSelectElement>(null);
   const [pick, setPick] = useState<Record<number, string>>({});
+  const [accSel, setAccSel] = useState<string>();
   // після «Відхилити» документа вже немає в списку, але панель ще виїжджає: показуємо останній стан
   const last = useRef<Doc | undefined>(undefined);
   const d = s.docs.find(x => x.id === id) || last.current;
@@ -25,11 +26,17 @@ function DocSheet({ id }: { id: number }) {
   const unbound = goods && d.st !== 'ok' ? d.items!.filter((_, i) => !choiceOf(i)).length : 0;
   const needs = d.st === 'check';
   const net = d.sum - (d.kind === 'pn' ? 0 : d.vat);
-  const accs: string[] = d.acc && !(ACCOUNTS as readonly string[]).includes(d.acc) ? [d.acc, ...ACCOUNTS] : [...ACCOUNTS];
+  const accNow = accSel ?? d.acc;
+  // зміна рахунку в картці одразу переписує проводки: старий номер рахунку замінюється новим
+  const oldN = d.acc?.split(' ')[0], newN = accNow?.split(' ')[0];
+  const lines: Doc['lines'] = oldN && newN && oldN !== newN ? d.lines.map(l => [l[0] === oldN ? newN : l[0], l[1] === oldN ? newN : l[1], l[2], l[3]]) : d.lines;
+  const lineIssues = checkLines(lines);
+  const fit = ACCOUNTS.filter(a => fitsKind(d.kind, a));
+  const accs: string[] = d.acc && !(fit as readonly string[]).includes(d.acc) ? [d.acc, ...fit] : [...fit];
   const codeCheck = d.checks?.find(c => /ЄДРПОУ|ІПН|Код контрагента/.test(c.t));
   const post = () => {
     const prev = d.st;
-    const acc = accRef.current?.value;
+    const acc = accNow;
     // підтверджений рахунок стає правилом для цього контрагента
     if (d.edrpou && acc && d.checks) saveRule(d.edrpou, acc);
     // прив'язки рядків постачальника до нашого довідника запам'ятовуються для наступних накладних
@@ -39,7 +46,7 @@ function DocSheet({ id }: { id: number }) {
       const nid = bindItem(d.edrpou, it.name, c, it.unit);
       return catalog().find(x => x.id === nid)?.name;
     }) : [];
-    upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) { dd.st = 'ok'; if (acc && d.checks) dd.acc = acc; if (goods) dd.items!.forEach((it, i) => { it.nom = noms[i]; }); } });
+    upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) { dd.st = 'ok'; dd.lines = lines; if (acc) dd.acc = acc; if (goods) dd.items!.forEach((it, i) => { it.nom = noms[i]; }); } });
     closeSheet();
     snack(`${d.type} № ${d.no} проведено`, () => upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) dd.st = prev; }));
   };
@@ -67,9 +74,9 @@ function DocSheet({ id }: { id: number }) {
           <div className="tf"><input id="f-net" placeholder=" " defaultValue={fmt(net)} /><label htmlFor="f-net">Сума без ПДВ, ₴</label></div>
           <div className="tf"><input id="f-vat" placeholder=" " defaultValue={fmt(d.vat)} /><label htmlFor="f-vat">ПДВ, ₴</label></div>
           <div className={cx('tf full', needs && 'warn')}>
-            <select id="f-acc" ref={accRef} defaultValue={d.acc}>{accs.map(o => <option key={o}>{o}</option>)}</select>
+            <select id="f-acc" value={accNow ?? accs[0]} disabled={d.st === 'ok' || !d.lines.length} onChange={e => setAccSel(e.target.value)}>{accs.map(o => <option key={o}>{o}</option>)}</select>
             <label htmlFor="f-acc">Рахунок витрат або доходу</label><Ms className="trail-ic">arrow_drop_down</Ms>
-            {needs && <div className="support">Система не впевнена: уточніть призначення</div>}
+            {needs && <div className="support">{d.checks?.find(c => !c.ok && /^Рахунок/.test(c.t))?.t || 'Система не впевнена: уточніть призначення'}</div>}
           </div>
         </div>
         {d.items && d.items.length > 0 && <div>
@@ -90,10 +97,11 @@ function DocSheet({ id }: { id: number }) {
             })}</tbody></table></div>
           {unbound > 0 && <div className="body-s" style={{ marginTop: 6, color: 'var(--md-error)' }}>{unbound} {plural(unbound, 'позицію', 'позиції', 'позицій')} не прив’язано до довідника. Без цього на складі з’являться дублікати</div>}
         </div>}
-        {d.lines.length > 0 && <div>
+        {lines.length > 0 && <div>
           <div className="title-s" style={{ marginBottom: 8 }}>Запропоновані проводки</div>
           <div className="posting"><table><thead><tr><th>Дт</th><th>Кт</th><th className="r">Сума, ₴</th><th>Зміст</th></tr></thead>
-            <tbody>{d.lines.map((l, i) => <tr key={i}><td>{l[0]}</td><td>{l[1]}</td><td className="r">{fmt(l[2])}</td><td className="body-s muted">{l[3]}</td></tr>)}</tbody></table></div>
+            <tbody>{lines.map((l, i) => <tr key={i}><td>{l[0]}</td><td>{l[1]}</td><td className="r">{fmt(l[2])}</td><td className="body-s muted">{l[3]}</td></tr>)}</tbody></table></div>
+          {lineIssues.length > 0 && <div className="body-s" style={{ marginTop: 6, color: 'var(--md-error)' }}>{lineIssues.map(x => x.t).join('. ')}. Провести не можна</div>}
         </div>}
         {d.checks && <div><div className="title-s" style={{ marginBottom: 10 }}>Перевірки</div>
           <ul className="checks body-m">{d.checks.map((c, i) => <li key={i}><Ms style={c.ok ? undefined : { color: 'var(--md-error)' }}>{c.ok ? 'check_circle' : 'error'}</Ms>{c.t}</li>)}</ul>
@@ -101,7 +109,7 @@ function DocSheet({ id }: { id: number }) {
       </div>
       <div className="sheet-foot">
         <button className="btn btn-text sl" onClick={reject}>Відхилити</button>
-        <button className="btn btn-filled sl" disabled={d.st === 'ok' || unbound > 0} onClick={post}><Ms>check</Ms>{d.st === 'ok' ? 'Проведено' : d.lines.length ? 'Провести' : 'Зберегти без проводок'}</button>
+        <button className="btn btn-filled sl" disabled={d.st === 'ok' || unbound > 0 || lineIssues.length > 0} onClick={post}><Ms>check</Ms>{d.st === 'ok' ? 'Проведено' : lines.length ? 'Провести' : 'Зберегти без проводок'}</button>
       </div>
     </>
   );
@@ -123,10 +131,10 @@ function OpSheet({ i }: { i: number }) {
           <div className="posting"><table><thead><tr><th>Дт</th><th>Кт</th><th>Зміст</th></tr></thead><tbody>{o[3].map((l, j) => <tr key={j}><td>{l[0]}</td><td>{l[1]}</td><td className="body-s muted">{l[2]}</td></tr>)}</tbody></table></div></div>
         <div><div className="title-s" style={{ marginBottom: 10 }}>Перевірки перед проведенням</div>
           <ul className="checks body-m">
-            <li><Ms>check_circle</Ms>Кореспонденція рахунків відповідає Інструкції 291</li>
+            {(() => { const iss = checkLines(o[3].map(l => [l[0], l[1]] as [string, string])); return <li><Ms style={iss.length ? { color: 'var(--md-error)' } : undefined}>{iss.length ? 'error' : 'check_circle'}</Ms>{iss.length ? iss.map(x => x.t).join('; ') : 'Рахунки є в плані рахунків, кореспонденція відповідає Інструкції 291'}</li>; })()}
             <li><Ms>check_circle</Ms>Сума проводок дорівнює сумі документа</li>
             {(o[1].includes('техкарт') || o[1].includes('ПРРО')) && <li><Ms>check_circle</Ms>Кількість списання = техкарта × продажі за зміну</li>}
-            {o[3].some(l => l.some(x => x.startsWith('644') || x === '641')) && <li><Ms>check_circle</Ms>ПДВ звірено з ЄРПН</li>}
+            {o[3].some(l => l.some(x => x.startsWith('644') || x === '6412')) && <li><Ms>check_circle</Ms>ПДВ звірено з ЄРПН</li>}
             {o[5] === 'confirm' && <li><Ms>check_circle</Ms>Потрібне підтвердження відповідальної особи</li>}
           </ul></div>
         <div className="card card-filled"><div className="title-s">Тест шаблону</div><div className="body-s muted" style={{ marginTop: 4 }}>Еталонний приклад, перевірений бухгалтером-методологом: документ на вході дає саме ці проводки.</div><div style={{ marginTop: 10 }}><span className="status st-ok"><Ms>check</Ms>Пройдено</span></div></div>
