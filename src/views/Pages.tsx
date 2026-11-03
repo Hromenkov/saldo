@@ -132,7 +132,7 @@ export function Close() {
         <ul className="steps">{s.close.map(c => (
           <li key={c.t} className={cx(c.done && 'done')}><span className="chk">{c.done && <Ms>check</Ms>}</span>
             <span className="txt"><div className="title-s">{c.t}</div><div className="body-s muted">{c.s}</div></span>
-            {!c.done && c.key && <button className="btn btn-text sl" onClick={() => go(c.key === 'bank' ? 'bank' : 'docs')}>Відкрити</button>}</li>
+            {!c.done && c.key && <button className="btn btn-text sl" onClick={() => go(c.key === 'bank' ? 'bank' : c.key === 'assets' ? 'assets' : 'docs')}>Відкрити</button>}</li>
         ))}</ul>
       </div>
       <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 16 }}>

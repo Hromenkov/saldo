@@ -1,11 +1,11 @@
 import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
 import { produce, type Draft } from 'immer';
-import { BANK, CLOSE, DOCS, HISTORY, LEDGER, QUESTIONS, REPORTS, type Biz, type Form, type HistoryItem } from './data';
+import { ASSETS, BANK, CLOSE, DOCS, HISTORY, LEDGER, QUESTIONS, REPORTS, type Biz, type Form, type HistoryItem } from './data';
 import { INITIAL_CHAT, type Msg } from './chat';
 
 export type Role = 'owner' | 'acc';
-export type View = 'overview' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'structure' | 'payroll';
-export type Sheet = { kind: 'doc'; id: number } | { kind: 'op'; i: number };
+export type View = 'overview' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'assets' | 'structure' | 'payroll';
+export type Sheet = { kind: 'doc'; id: number } | { kind: 'op'; i: number } | { kind: 'asset'; id: string };
 export type Dialog = { kind: 'sign'; name: string; per: string } | { kind: 'upload' } | { kind: 'plan' } | { kind: 'act'; cp: string; edrpou?: string };
 
 export type State = {
@@ -13,6 +13,8 @@ export type State = {
   docTab: string; structTab: string;
   docs: typeof DOCS; bank: typeof BANK; questions: typeof QUESTIONS; reports: typeof REPORTS; close: typeof CLOSE;
   history: HistoryItem[];
+  /** основні засоби */
+  assets: typeof ASSETS;
   ledger: typeof LEDGER;
   /** звідки ОСВ: null = демо-дані, інакше назва файлу і період з 1С */
   ledgerSrc: string | null;
@@ -42,6 +44,7 @@ export const NAV: Record<Role, [View, string, string, ((s: State) => number | ''
     ['questions', 'contact_support', 'Питання власнику', s => s.questions.length || ''],
     ['ops', 'account_tree', 'Типові операції'],
     ['payroll', 'badge', 'Зарплата'],
+    ['assets', 'inventory_2', 'Основні засоби'],
     ['ledger', 'table_view', 'Оборотно-сальдова'],
     ['close', 'event_available', 'Закриття місяця'],
     ['structure', 'schema', 'Структура і зміни'],
@@ -54,7 +57,7 @@ const onbSeen = () => { try { return sessionStorage.getItem('saldo-onb') === '1'
 const initial = (): State => ({
   role: 'owner', mode: 'mgmt', period: 'Листопад 2026', view: 'overview', docTab: 'all', structTab: 'Усі',
   docs: structuredClone(DOCS), bank: structuredClone(BANK), questions: structuredClone(QUESTIONS),
-  reports: structuredClone(REPORTS), close: structuredClone(CLOSE), history: structuredClone(HISTORY),
+  reports: structuredClone(REPORTS), close: structuredClone(CLOSE), history: structuredClone(HISTORY), assets: structuredClone(ASSETS),
   ledger: structuredClone(LEDGER), ledgerSrc: null,
   biz: null, chat: INITIAL_CHAT(), nav: 0,
   sheet: null, sheetOpen: false, overlaySeq: 0, dialog: null, dialogOpen: false, drawerOpen: false, onbOpen: !onbSeen()
