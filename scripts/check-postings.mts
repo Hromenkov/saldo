@@ -91,8 +91,8 @@ const rec = reconcile(read2, read1);
 ok(rec.result.items[0].qty === 17.7 && rec.diff.includes('items[0].qty') && rec.result.uncertain.includes('items[0].qty'), 'Звірка бере 17,7 і позначає кількість для перевірки');
 ok(rec.result.confidence <= 78, 'Розбіжність знижує впевненість');
 ok(reconcile(read1, { ...read1 }).diff.length === 0, 'Однакові читання не дають розбіжностей');
-{ const m = reconcile({ ...read1, margin_notes: null }, { ...read1, margin_notes: '063-173-37-42; Ігор?' });
-  ok(m.result.margin_notes === '063-173-37-42; Ігор?' && m.diff.length === 0, 'Приписка з полів береться з будь-якого читання і не знижує впевненість'); }
+{ const m = reconcile({ ...read1, margin_notes: null }, { ...read1, margin_notes: '063-173-37-42; XV; Лучаш?' });
+  ok(m.result.margin_notes === '063-173-37-42; XV; Лучаш?' && m.diff.length === 0, 'Приписка з полів береться з будь-якого читання і не знижує впевненість'); }
 ok(fieldLabel('items[0].qty') === 'кількість в рядку 1' && fieldLabel('items') === 'кількість рядків', 'Назви полів для бухгалтера');
 
 // взаєморозрахунки
