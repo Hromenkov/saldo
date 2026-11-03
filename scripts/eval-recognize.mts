@@ -1,0 +1,37 @@
+// Прогін реальних документів через ту саму функцію розпізнавання, що працює на сайті.
+// Потрібен ANTHROPIC_API_KEY. Запуск: ANTHROPIC_API_KEY=... npm run eval
+// Еталони: tests/fixtures/*.json (поле file — зображення поруч у tests/fixtures).
+import { readFileSync, readdirSync } from 'node:fs';
+import { join } from 'node:path';
+import handler from '../netlify/functions/recognize.mts';
+
+if (!process.env.ANTHROPIC_API_KEY) { console.log('Немає ANTHROPIC_API_KEY: еталонний прогін пропущено'); process.exit(0); }
+const dir = 'tests/fixtures';
+let pass = 0, total = 0;
+for (const f of readdirSync(dir).filter(x => x.endsWith('.json'))) {
+  const fx = JSON.parse(readFileSync(join(dir, f), 'utf8'));
+  const data = readFileSync(join(dir, fx.file)).toString('base64');
+  const mime = fx.file.endsWith('.png') ? 'image/png' : fx.file.endsWith('.pdf') ? 'application/pdf' : 'image/jpeg';
+  const res = await handler(new Request('http://x/api/recognize', { method: 'POST', body: JSON.stringify({ name: fx.file, mime, data, company: fx.company || 'ТОВ «Хуст Ріка»' }) }));
+  const out = await res.json();
+  const e = fx.expect, r = out.result || {};
+  const fails: string[] = [];
+  const near = (a: number, b: number) => a != null && Math.abs(a - b) < 0.01;
+  if (!out.ok) fails.push('помилка: ' + out.error);
+  else {
+    if (e.kind && r.kind !== e.kind) fails.push(`kind ${r.kind}`);
+    if (e.number && (r.number || '').replace(/\D/g, '') !== e.number) fails.push(`номер ${r.number}`);
+    if (e.date && r.date !== e.date) fails.push(`дата ${r.date}`);
+    for (const k of ['net', 'vat', 'total'] as const) if (e[k] != null && !near(r[k], e[k])) fails.push(`${k} ${r[k]}`);
+    if (e.counterparty_name_has && !(r.counterparty?.name || '').includes(e.counterparty_name_has)) fails.push(`контрагент ${r.counterparty?.name}`);
+    (e.items || []).forEach((it: any, i: number) => {
+      const g = r.items?.[i] || {};
+      if (it.name_has && !(g.name || '').includes(it.name_has)) fails.push(`рядок ${i + 1} назва ${g.name}`);
+      for (const k of ['qty', 'price', 'amount']) if (it[k] != null && !near(g[k], it[k])) fails.push(`рядок ${i + 1} ${k} ${g[k]}`);
+    });
+  }
+  total++; if (!fails.length) pass++;
+  console.log(`${fails.length ? '✗' : '✓'} ${fx.file}${fails.length ? ': ' + fails.join('; ') : ''}${out.diff?.length ? ` (розбіжності читань: ${out.diff.join(', ')})` : ''}`);
+}
+console.log(`\n${pass} з ${total}`);
+process.exit(pass === total ? 0 : 1);

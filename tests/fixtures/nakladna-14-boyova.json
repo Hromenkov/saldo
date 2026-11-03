@@ -1,0 +1,17 @@
+{
+  "file": "nakladna-14-boyova.png",
+  "about": "Реальна рукописна накладна на бланку: ФОП-постачальник без ПДВ, одна позиція сиру, телефон дописаний зверху",
+  "expect": {
+    "kind": "purchase_goods",
+    "number": "14",
+    "date": "2026-08-22",
+    "counterparty_name_has": "Бригар",
+    "our_side_has": "Хуст",
+    "items": [{ "name_has": "Нарцис", "qty": 17.7, "price": 805, "amount": 14248.5 }],
+    "net": 14248.5,
+    "vat": 0,
+    "total": 14248.5,
+    "handwritten": true,
+    "number_not": "0631733742"
+  }
+}

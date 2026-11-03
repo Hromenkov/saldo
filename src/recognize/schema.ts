@@ -50,4 +50,5 @@ export const Recognized = z.object({
 export type Recognized = z.infer<typeof Recognized>;
 
 export type RecognizeRequest = { name: string; mime: string; data: string; company: string };
-export type RecognizeResponse = { ok: true; result: Recognized; model: string } | { ok: false; error: string };
+/** passes — скільки незалежних читань зроблено (для фото два), diff — поля, де вони розійшлися. */
+export type RecognizeResponse = { ok: true; result: Recognized; model: string; passes?: number; diff?: string[] } | { ok: false; error: string };

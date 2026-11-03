@@ -4,6 +4,8 @@ import { OPS, DOCS, BANK, type Doc } from '../src/data';
 import { allocate, balances, movements, reconciliation, withAdvances, refNo } from '../src/recognize/settlements';
 import { CHART, checkLines, fitsKind, purposeAccount, TAX_PURPOSE } from '../src/recognize/chart';
 import { ruleKey } from '../src/recognize/rules';
+import { reconcile, consistency } from '../src/recognize/reconcile';
+import { fieldLabel } from '../src/recognize/checks';
 import { basisChain, cashFlowArticle, monthOf } from '../src/recognize/basis';
 import { postings } from '../src/recognize/checks';
 import { ACCOUNTS } from '../src/recognize/accounts';
@@ -80,6 +82,16 @@ ok(checkLines([['6412', '311', 0, '']]).length > 0, 'ПДВ з поточног�
 ok(cashFlowArticle('payment_out', '651') === 'Витрачання на оплату відрахувань на соціальні заходи', 'Стаття ДДС для ЄСВ');
 ok(cashFlowArticle('payment_in', '681') === 'Надходження авансів від покупців і замовників', 'Стаття ДДС для авансу від покупця');
 ok(cashFlowArticle('payment_out', '315')!.startsWith('Внутрішнє'), 'Поповнення рахунку ПДВ — внутрішнє переміщення');
+
+// два читання рукописної накладної: перемагає узгоджене, розбіжності — на ручну перевірку
+const read1 = { ...base, kind: 'purchase_goods', number: '14', items: [{ name: 'Сир Нарцис Карпатський', qty: 17.7, unit: 'кг', price: 805, amount: 14248.5 }], net: 14248.5, vat: 0, total: 14248.5, vat_rate: null, confidence: 90 } as Recognized;
+const read2 = { ...read1, items: [{ ...read1.items[0], qty: 11.7 }], confidence: 88 } as Recognized;
+ok(consistency(read1) > consistency(read2), 'Читання 17,7 × 805 = 14 248,50 узгодженіше за 11,7 × 805');
+const rec = reconcile(read2, read1);
+ok(rec.result.items[0].qty === 17.7 && rec.diff.includes('items[0].qty') && rec.result.uncertain.includes('items[0].qty'), 'Звірка бере 17,7 і позначає кількість для перевірки');
+ok(rec.result.confidence <= 78, 'Розбіжність знижує впевненість');
+ok(reconcile(read1, { ...read1 }).diff.length === 0, 'Однакові читання не дають розбіжностей');
+ok(fieldLabel('items[0].qty') === 'кількість в рядку 1' && fieldLabel('items') === 'кількість рядків', 'Назви полів для бухгалтера');
 
 // взаєморозрахунки
 ok(refNo('Оплата за товар згідно рах. 418') === '418' && refNo('Оплата за послуги згідно акту 77') === '77', 'Номер документа з призначення платежу');
