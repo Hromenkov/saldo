@@ -4,9 +4,10 @@ import { reduceMotion } from './lib';
 import { Overview } from './views/Overview';
 import { Questions, Docs, Bank, Ledger, Close, Reports } from './views/Pages';
 import { Ops } from './views/Ops';
+import { Assets } from './views/Assets';
 import { Structure } from './views/Structure';
 
-const VIEWS = { overview: Overview, questions: Questions, docs: Docs, bank: Bank, ledger: Ledger, close: Close, reports: Reports, ops: Ops, structure: Structure };
+const VIEWS = { overview: Overview, questions: Questions, docs: Docs, bank: Bank, ledger: Ledger, close: Close, reports: Reports, ops: Ops, assets: Assets, structure: Structure };
 
 export function Main() {
   const { s } = useApp();
