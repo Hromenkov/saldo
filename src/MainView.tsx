@@ -6,10 +6,12 @@ import { Questions, Docs, Bank, Ledger, Close, Reports } from './views/Pages';
 import { Ops } from './views/Ops';
 import { Assets } from './views/Assets';
 import { Structure } from './views/Structure';
+import { Payroll } from './views/Payroll';
+import { Vat } from './views/Vat';
 import { Stock } from './views/Stock';
 import { Credit } from './views/Credit';
 
-const VIEWS = { overview: Overview, questions: Questions, docs: Docs, bank: Bank, ledger: Ledger, close: Close, reports: Reports, ops: Ops, assets: Assets, structure: Structure, stock: Stock, credit: Credit };
+const VIEWS = { overview: Overview, questions: Questions, docs: Docs, bank: Bank, ledger: Ledger, close: Close, reports: Reports, ops: Ops, assets: Assets, structure: Structure, stock: Stock, vat: Vat, payroll: Payroll, credit: Credit };
 
 export function Main() {
   const { s } = useApp();
