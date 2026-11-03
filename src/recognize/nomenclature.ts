@@ -53,15 +53,27 @@ function similarity(a: string, b: string): number {
   return shared / Math.max(B.length, 1);
 }
 
-export type Match = { id: string; how: 'map' | 'guess' } | undefined;
+export type Match = { id: string; how: 'map' | 'other' | 'guess' } | undefined;
 
-/** Наша позиція для рядка постачальника: спершу збережена прив'язка, потім найсхожіша назва. */
+/**
+ * Наша позиція для рядка постачальника:
+ * 1) збережена прив'язка цього постачальника;
+ * 2) така сама назва вже прив'язана в іншого постачальника (новий постачальник — не нова робота);
+ * 3) найсхожіша назва серед позицій довідника і всіх раніше прив'язаних назв постачальників.
+ */
 export function matchItem(edrpou: string | undefined, name: string, cat = catalog()): Match {
-  const m = read<Record<string, string>>(MAP, {})[mapKey(edrpou, name)];
-  if (m && cat.some(c => c.id === m)) return { id: m, how: 'map' };
-  let best: NomItem | undefined, score = 0;
-  for (const c of cat) { const sc = similarity(name, c.name); if (sc > score) { score = sc; best = c; } }
-  return best && score >= 0.6 ? { id: best.id, how: 'guess' } : undefined;
+  const map = read<Record<string, string>>(MAP, {});
+  const alive = (id?: string) => !!id && cat.some(c => c.id === id);
+  const own = map[mapKey(edrpou, name)];
+  if (alive(own)) return { id: own, how: 'map' };
+  const n = normName(name);
+  const known = Object.entries(map).find(([k, id]) => k.slice(k.indexOf('|') + 1) === n && alive(id));
+  if (known) return { id: known[1], how: 'other' };
+  let best: string | undefined, score = 0;
+  const cands: [string, string][] = [...cat.map(c => [c.name, c.id] as [string, string]),
+    ...Object.entries(map).filter(([, id]) => alive(id)).map(([k, id]) => [k.slice(k.indexOf('|') + 1), id] as [string, string])];
+  for (const [cn, id] of cands) { const sc = similarity(name, cn); if (sc > score) { score = sc; best = id; } }
+  return best && score >= 0.6 ? { id: best, how: 'guess' } : undefined;
 }
 
 /** Зберегти прив'язку. id 'new' — створити нову позицію довідника з назвою постачальника. */
