@@ -8,8 +8,13 @@ function load(): Rules {
   try { return JSON.parse(localStorage.getItem(KEY) || '{}') as Rules; } catch { return {}; }
 }
 
-export const ruleFor = (edrpou?: string) => (edrpou ? load()[edrpou] : undefined);
+/** Ключ правила: для грошових документів окремо за видом, щоб правило «201» для постачальника не потрапило в платіжку. */
+export const ruleKey = (edrpou: string, kind: string) => /^(cash|payment)_/.test(kind) ? `${edrpou}|${kind}` : edrpou;
 
-export function saveRule(edrpou: string, acc: string) {
-  try { const r = load(); r[edrpou] = acc; localStorage.setItem(KEY, JSON.stringify(r)); } catch { /* приватний режим */ }
+export const ruleFor = (edrpou?: string, kind = '') => (edrpou ? load()[ruleKey(edrpou, kind)] : undefined);
+
+export function saveRule(edrpou: string, acc: string, kind = '') {
+  // податкові й зарплатні рахунки не запам'ятовуємо: кожен такий платіж звіряє бухгалтер
+  if (/^(64|65|66)/.test(acc)) return;
+  try { const r = load(); r[ruleKey(edrpou, kind)] = acc; localStorage.setItem(KEY, JSON.stringify(r)); } catch { /* приватний режим */ }
 }

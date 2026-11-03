@@ -1,7 +1,8 @@
 // Перевірка плану рахунків: усі шаблони операцій, демо-документи і типові проводки розпізнавання
 // мають використовувати рахунки з плану і допустимі кореспонденції. Запуск: npm test
 import { OPS, DOCS } from '../src/data';
-import { CHART, checkLines, fitsKind } from '../src/recognize/chart';
+import { CHART, checkLines, fitsKind, purposeAccount, TAX_PURPOSE } from '../src/recognize/chart';
+import { ruleKey } from '../src/recognize/rules';
 import { postings } from '../src/recognize/checks';
 import { ACCOUNTS } from '../src/recognize/accounts';
 import type { Recognized } from '../src/recognize/schema';
@@ -30,8 +31,8 @@ const svc = P('purchase_service', '92 Адміністративні витра�
 ok(svc[0][0] === '92' && svc[1][0] === '6441', 'Послуга: витрати на обраний рахунок 92, ПДВ на 6441');
 const sale = P('sale', '703 Дохід від реалізації робіт і послуг');
 ok(JSON.stringify(sale.map(l => [l[0], l[1], l[2]])) === JSON.stringify([['361', '703', 1200], ['703', '6412', 200]]), 'Продаж: Дт 361 Кт 703 1200, Дт 703 Кт 6412 200');
-for (const k of ['invoice', 'tax_invoice', 'receipt', 'other'] as const) ok(P(k, '92 Адміністративні витрати').length === 0, `${k}: проводок немає`);
-for (const k of ['purchase_goods', 'purchase_service', 'sale'] as const) for (const a of ACCOUNTS) if (fitsKind(k, a)) ok(!checkLines(P(k, a)).length, `${k} + ${a.split(' ')[0]}: кореспонденції допустимі`);
+for (const k of ['invoice', 'order', 'tax_invoice', 'receipt', 'other'] as const) ok(P(k, '92 Адміністративні витрати').length === 0, `${k}: проводок немає`);
+for (const k of ['purchase_goods', 'purchase_service', 'sale', 'cash_in', 'cash_out', 'payment_in', 'payment_out'] as const) for (const a of ACCOUNTS) if (fitsKind(k, a)) ok(!checkLines(P(k, a)).length, `${k} + ${a.split(' ')[0]}: кореспонденції допустимі`);
 
 const pay = OPS.find(o => o[1] === 'Нарахування зарплати')![3];
 ok(pay.some(l => l[0] === '661' && l[1] === '6411'), 'Зарплата: ПДФО Дт 661 Кт 6411');
@@ -39,6 +40,26 @@ ok(pay.some(l => l[0] === '661' && l[1] === '642'), 'Зарплата: війс�
 ok(pay.some(l => l[1] === '651'), 'Зарплата: ЄСВ на 651');
 ok(checkLines([['92', '641', 0, '']]).length > 0, 'Неіснуючий субрахунок 641 без деталізації відхиляється');
 ok(checkLines([['91', '6411', 0, '']]).length > 0, 'Недопустима пара Дт 91 Кт 6411 відхиляється');
+
+// касові ордери і платіжки
+const pko = P('cash_in', '361 Розрахунки з вітчизняними покупцями');
+ok(JSON.stringify(pko.map(l => [l[0], l[1], l[2]])) === JSON.stringify([['301', '361', 1200]]), 'ПКО від покупця: Дт 301 Кт 361 1200');
+const rko = P('cash_out', '372 Розрахунки з підзвітними особами');
+ok(rko[0][0] === '372' && rko[0][1] === '301', 'РКО під звіт: Дт 372 Кт 301');
+const pin = P('payment_in', '681 Розрахунки за авансами одержаними');
+ok(JSON.stringify(pin.map(l => [l[0], l[1], l[2]])) === JSON.stringify([['311', '681', 1200], ['643', '6412', 200]]), 'Аванс від покупця: Дт 311 Кт 681, ПДВ Дт 643 Кт 6412');
+const pout = P('payment_out', '6411 Розрахунки з ПДФО');
+ok(pout[0][0] === '6411' && pout[0][1] === '311', 'Сплата ПДФО: Дт 6411 Кт 311');
+ok(!fitsKind('cash_out', '92 Адміністративні витрати'), 'РКО не може йти напряму на 92');
+ok(!fitsKind('payment_out', '201 Сировина й матеріали'), 'Платіжка не може йти на 201');
+ok(TAX_PURPOSE['6411'].test('*;101;12345678;ПДФО із зарплати за жовтень 2026') && !TAX_PURPOSE['642'].test('ПДФО із зарплати'), 'Призначення «ПДФО» розпізнається як 6411, не 642');
+ok(purposeAccount('Військовий збір за жовтень') === '642', 'Призначення «Військовий збір» → 642');
+ok(purposeAccount('*;101;00032129;ПДФО із зарплати за жовтень') === '6411', '«ПДФО із зарплати» → 6411, а не 661');
+ok(purposeAccount('Заробітна плата за жовтень 2026') === '661', '«Заробітна плата» → 661');
+ok(purposeAccount('ЄСВ із зарплати за жовтень') === '651', '«ЄСВ із зарплати» → 651');
+ok(purposeAccount('Оплата за товар згідно рах. 356') === undefined, 'Оплата постачальнику не є податком');
+ok(TAX_PURPOSE['651'].test('ЄСВ за жовтень 2026'), 'Призначення «ЄСВ» → 651');
+ok(ruleKey('12345678', 'payment_out') !== ruleKey('12345678', 'purchase_goods'), 'Правило для платіжок окреме від правила для накладних');
 
 // ланцюжки капіталу, ОЗ, кредитів, валюти і прибутку
 ok(!checkLines([['46', '40', 0, ''], ['311', '46', 0, '']]).length, 'Статутний капітал: Дт 46 Кт 40, Дт 311 Кт 46');

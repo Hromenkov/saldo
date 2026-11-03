@@ -38,7 +38,7 @@ function DocSheet({ id }: { id: number }) {
     const prev = d.st;
     const acc = accNow;
     // підтверджений рахунок стає правилом для цього контрагента
-    if (d.edrpou && acc && d.checks) saveRule(d.edrpou, acc);
+    if (d.edrpou && acc && d.checks) saveRule(d.edrpou, acc, d.kind);
     // прив'язки рядків постачальника до нашого довідника запам'ятовуються для наступних накладних
     const noms = goods ? d.items!.map((it, i) => {
       const c = choiceOf(i);
@@ -71,12 +71,12 @@ function DocSheet({ id }: { id: number }) {
           <div className="tf full"><input id="f-cp" placeholder=" " defaultValue={d.cp} /><label htmlFor="f-cp">Контрагент</label><Ms className="trail-ic">{codeCheck && !codeCheck.ok ? 'error' : 'verified'}</Ms><div className="support">{d.checks ? (codeCheck?.t || 'Код контрагента не знайдено') : 'ЄДРПОУ перевірено в ЄДР'}</div></div>
           <div className="tf"><input id="f-no" placeholder=" " defaultValue={d.no} /><label htmlFor="f-no">Номер</label></div>
           <div className="tf"><input id="f-date" placeholder=" " defaultValue={d.date + '.' + (d.y || '2026')} /><label htmlFor="f-date">Дата</label><Ms className="trail-ic">calendar_today</Ms></div>
-          <div className="tf"><input id="f-net" placeholder=" " defaultValue={fmt(net)} /><label htmlFor="f-net">Сума без ПДВ, ₴</label></div>
+          <div className="tf"><input id="f-net" placeholder=" " defaultValue={fmt(net)} /><label htmlFor="f-net">{/^(cash|payment)_/.test(d.kind) ? 'Сума, ₴' : 'Сума без ПДВ, ₴'}</label></div>
           <div className="tf"><input id="f-vat" placeholder=" " defaultValue={fmt(d.vat)} /><label htmlFor="f-vat">ПДВ, ₴</label></div>
           <div className={cx('tf full', needs && 'warn')}>
             <select id="f-acc" value={accNow ?? accs[0]} disabled={d.st === 'ok' || !d.lines.length} onChange={e => setAccSel(e.target.value)}>{accs.map(o => <option key={o}>{o}</option>)}</select>
-            <label htmlFor="f-acc">Рахунок витрат або доходу</label><Ms className="trail-ic">arrow_drop_down</Ms>
-            {needs && <div className="support">{d.checks?.find(c => !c.ok && /^Рахунок/.test(c.t))?.t || 'Система не впевнена: уточніть призначення'}</div>}
+            <label htmlFor="f-acc">{/^(cash|payment)_/.test(d.kind) ? 'Кореспондуючий рахунок' : 'Рахунок витрат або доходу'}</label><Ms className="trail-ic">arrow_drop_down</Ms>
+            {needs && <div className="support">{d.checks?.find(c => !c.ok && /^(Рахунок|Кореспондуючий)/.test(c.t))?.t || 'Система не впевнена: уточніть призначення'}</div>}
           </div>
         </div>
         {d.items && d.items.length > 0 && <div>
