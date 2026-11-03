@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { ACCOUNTS } from '../recognize/accounts';
 import { recognizeFile } from '../recognize/client';
 import { saveRule } from '../recognize/rules';
-import { bindItem, catalog, matchItem } from '../recognize/nomenclature';
+import { activeItems, bindItem, catalog, matchItem, mergeFromBas } from '../recognize/nomenclature';
 import { import1c, is1cFile, type Imported } from '../import1c';
 import { CHANGE_TYPES, OPS, type Doc } from '../data';
 import { useApp } from '../store';
@@ -81,7 +81,7 @@ function DocSheet({ id }: { id: number }) {
                 {goods && <td style={{ minWidth: 190 }}>{c === 'done' || d.st === 'ok' ? <span>{it.nom}</span> : <>
                   <select className="nom-sel" aria-label={`Позиція довідника для «${it.name}»`} value={c} onChange={e => { const v = e.target.value; setPick(p => ({ ...p, [i]: v })); }}>
                     <option value="">Оберіть позицію…</option>
-                    {cat.map(o => <option key={o.id} value={o.id}>{o.name}, {o.unit}</option>)}
+                    {activeItems(cat).map(o => <option key={o.id} value={o.id}>{o.name}, {o.unit}</option>)}
                     <option value="new">+ Нова позиція: {it.name}</option>
                   </select>
                   <div className="body-s" style={{ marginTop: 2, color: !c ? 'var(--md-error)' : undefined }}>{!c ? 'Немає в довіднику' : pick[i] !== undefined ? (c === 'new' ? 'Буде додано до довідника' : 'Обрано вручну') : a?.how === 'map' ? 'За збереженою прив’язкою' : a?.how === 'other' ? 'Так само прив’язано в іншого постачальника' : 'Схожа назва: перевірте'}</div>
@@ -170,10 +170,18 @@ function UploadDialog() {
       return `Виписка ${r.account || name}: ${r.rows.length} ${plural(r.rows.length, 'операцію', 'операції', 'операцій')} додано в «Банк»`;
     }
     if (r.kind === 'docs') {
-      const base = Date.now();
-      upd(x => { x.docs.unshift(...r.docs.map((d, i) => ({ ...d, id: base + i }))); });
-      go('docs');
-      return `З 1С імпортовано ${r.docs.length} ${plural(r.docs.length, 'документ', 'документи', 'документів')}`;
+      const out: string[] = [];
+      if (r.docs.length) {
+        const base = Date.now();
+        upd(x => { x.docs.unshift(...r.docs.map((d, i) => ({ ...d, id: base + i }))); });
+        go('docs');
+        out.push(`З 1С імпортовано ${r.docs.length} ${plural(r.docs.length, 'документ', 'документи', 'документів')}`);
+      }
+      if (r.items.length) {
+        const m = mergeFromBas(r.items);
+        out.push(`Номенклатура з BAS: ${m.added} нових, ${m.updated} оновлено, нічого не видалено`);
+      }
+      return out.join('. ');
     }
     upd(x => { x.ledger = r.rows; x.ledgerSrc = name + (r.period ? ', ' + r.period : ''); });
     return `ОСВ імпортовано: ${r.rows.length} ${plural(r.rows.length, 'рахунок', 'рахунки', 'рахунків')}. Дивіться «Оборотно-сальдова» в режимі бухгалтера`;
