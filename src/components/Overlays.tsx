@@ -166,6 +166,11 @@ function DocSheet({ id }: { id: number }) {
         {d.checks && <div><div className="title-s" style={{ marginBottom: 10 }}>Перевірки</div>
           <ul className="checks body-m">{d.checks.map((c, i) => <li key={i}><Ms style={c.ok ? undefined : { color: 'var(--md-error)' }}>{c.ok ? 'check_circle' : 'error'}</Ms>{c.t}</li>)}</ul>
           {d.note && <div className="body-s muted" style={{ marginTop: 10 }}>{d.note}</div>}</div>}
+        <div><div className="title-s" style={{ marginBottom: 8 }}>Коментар</div>
+          <textarea className="body-m" rows={2} style={{ width: '100%', boxSizing: 'border-box', padding: 8, borderRadius: 8, border: '1px solid var(--md-outline-variant)', background: 'transparent', color: 'inherit', font: 'inherit', resize: 'vertical' }}
+            placeholder="Приписки з полів документа або ваша примітка. На облік не впливає"
+            value={d.comment || ''} onChange={e => { const v = e.target.value; upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) dd.comment = v; }); }} />
+          {d.comment?.includes('?') && <div className="body-s muted" style={{ marginTop: 4 }}>«?» — слово чи цифра прочитані неточно, перевірте за оригіналом</div>}</div>
       </div>
       <div className="sheet-foot">
         <button className="btn btn-text sl" onClick={reject}>Відхилити</button>

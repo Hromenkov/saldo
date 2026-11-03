@@ -24,6 +24,7 @@ for (const f of readdirSync(dir).filter(x => x.endsWith('.json'))) {
     if (e.date && r.date !== e.date) fails.push(`дата ${r.date}`);
     for (const k of ['net', 'vat', 'total'] as const) if (e[k] != null && !near(r[k], e[k])) fails.push(`${k} ${r[k]}`);
     if (e.counterparty_name_has && !(r.counterparty?.name || '').includes(e.counterparty_name_has)) fails.push(`контрагент ${r.counterparty?.name}`);
+    if (e.margin_notes_has && !(r.margin_notes || '').replace(/\D/g, '').includes(e.margin_notes_has)) fails.push(`приписка ${r.margin_notes}`);
     (e.items || []).forEach((it: any, i: number) => {
       const g = r.items?.[i] || {};
       if (it.name_has && !(g.name || '').includes(it.name_has)) fails.push(`рядок ${i + 1} назва ${g.name}`);

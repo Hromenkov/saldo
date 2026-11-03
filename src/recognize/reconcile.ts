@@ -41,5 +41,7 @@ export function reconcile(a: Recognized, b: Recognized): { result: Recognized; d
   const diff = disagreements(base, other);
   const uncertain = [...new Set([...base.uncertain, ...other.uncertain.filter(u => diff.includes(u)), ...diff])];
   const confidence = Math.max(0, Math.min(base.confidence, other.confidence) - diff.length * 10);
-  return { result: { ...base, uncertain, confidence, handwritten: base.handwritten || other.handwritten }, diff };
+  // приписки на полях на облік не впливають: беремо ту, що є (довшу), без зниження впевненості
+  const margin_notes = [base.margin_notes, other.margin_notes].filter(Boolean).sort((x, y) => y!.length - x!.length)[0] ?? null;
+  return { result: { ...base, uncertain, confidence, handwritten: base.handwritten || other.handwritten, margin_notes }, diff };
 }

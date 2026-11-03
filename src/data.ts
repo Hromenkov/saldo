@@ -9,6 +9,8 @@ export type Doc = {
   y?: string;
   /** поля розпізнаних та імпортованих документів */
   acc?: string; edrpou?: string; checks?: { ok: boolean; t: string }[]; note?: string;
+  /** коментар до документа: рукописні приписки на полях (телефон, ім’я) або текст бухгалтера; на облік не впливає */
+  comment?: string;
   /** номенклатура: найменування, кількість, одиниця, ціна, сума */
   items?: { name: string; qty: number | null; unit: string | null; price: number | null; amount: number | null; nom?: string }[];
   /** підстава грошового документа (договір, заявка, рахунок, накладна, період) і стаття руху коштів */

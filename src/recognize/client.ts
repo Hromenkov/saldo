@@ -112,6 +112,7 @@ export async function recognizeFile(file: File, company: string, existing: Doc[]
     st: autoReady(checks, conf) ? 'new' : 'check', src: body.mime === 'application/pdf' ? 'PDF' : 'Фото', conf,
     kind: r.kind === 'tax_invoice' ? 'pn' : r.kind, lines,
     acc, edrpou, checks, note: [r.purpose && `Призначення: ${r.purpose}`, r.note || r.account_reason].filter(Boolean).join('. '), items: r.items,
+    comment: r.margin_notes?.trim() || undefined,
     refs, cf: cashFlowArticle(r.kind, acc)
   };
 }
