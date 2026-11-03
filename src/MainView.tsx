@@ -7,8 +7,9 @@ import { Ops } from './views/Ops';
 import { Assets } from './views/Assets';
 import { Structure } from './views/Structure';
 import { Stock } from './views/Stock';
+import { Credit } from './views/Credit';
 
-const VIEWS = { overview: Overview, questions: Questions, docs: Docs, bank: Bank, ledger: Ledger, close: Close, reports: Reports, ops: Ops, assets: Assets, structure: Structure, stock: Stock };
+const VIEWS = { overview: Overview, questions: Questions, docs: Docs, bank: Bank, ledger: Ledger, close: Close, reports: Reports, ops: Ops, assets: Assets, structure: Structure, stock: Stock, credit: Credit };
 
 export function Main() {
   const { s } = useApp();

@@ -4,7 +4,7 @@ import { ASSETS, BANK, CLOSE, DOCS, HISTORY, LEDGER, QUESTIONS, REPORTS, type Bi
 import { INITIAL_CHAT, type Msg } from './chat';
 
 export type Role = 'owner' | 'acc';
-export type View = 'overview' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'assets' | 'structure' | 'stock';
+export type View = 'overview' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'assets' | 'structure' | 'stock' | 'credit';
 export type Sheet = { kind: 'doc'; id: number } | { kind: 'op'; i: number } | { kind: 'asset'; id: string };
 export type Dialog = { kind: 'sign'; name: string; per: string } | { kind: 'upload' } | { kind: 'plan' } | { kind: 'act'; cp: string; edrpou?: string };
 
@@ -46,6 +46,7 @@ export const NAV: Record<Role, [View, string, string, ((s: State) => number | ''
     ['stock', 'inventory_2', 'Склад'],
     ['ops', 'account_tree', 'Типові операції'],
     ['assets', 'inventory_2', 'Основні засоби'],
+    ['credit', 'currency_exchange', 'Кредити і валюта'],
     ['ledger', 'table_view', 'Оборотно-сальдова'],
     ['close', 'event_available', 'Закриття місяця'],
     ['structure', 'schema', 'Структура і зміни'],
