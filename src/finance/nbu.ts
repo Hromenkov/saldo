@@ -36,10 +36,12 @@ const cache = new Map<string, Promise<number>>();
 export function fetchNbuRate(cur: string, date: string): Promise<number> {
   if (cur === 'UAH') return Promise.resolve(1);
   const key = cur + date;
-  if (!cache.has(key)) cache.set(key, fetch(`/api/nbu-rate?cur=${encodeURIComponent(cur)}&date=${date}`)
+  const viaServer = () => fetch(`/api/nbu-rate?cur=${encodeURIComponent(cur)}&date=${date}`)
     .then(r => r.json())
-    .then((j: { ok: boolean; rate?: number; error?: string }) => { if (!j.ok || !j.rate) throw new Error(j.error ?? 'Курс НБУ недоступний'); return j.rate; })
-    .catch(e => { cache.delete(key); throw e; }));
+    .then((j: { ok: boolean; rate?: number; error?: string }) => { if (!j.ok || !j.rate) throw new Error(j.error ?? 'Курс НБУ недоступний'); return j.rate; });
+  // запасний шлях: напряму до API НБУ, якщо функція сайту недоступна
+  const direct = () => fetch(nbuUrl(cur, date)).then(r => r.json()).then(j => { const r = parseNbu(j, cur); if (!r) throw new Error(`НБУ не має курсу ${cur} на ${date}`); return r; });
+  if (!cache.has(key)) cache.set(key, viaServer().catch(direct).catch(e => { cache.delete(key); throw e; }));
   return cache.get(key)!;
 }
 
