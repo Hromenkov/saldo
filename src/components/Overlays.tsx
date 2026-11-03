@@ -57,18 +57,23 @@ function DocSheet({ id }: { id: number }) {
             {needs && <div className="support">Система не впевнена: уточніть призначення</div>}
           </div>
         </div>
-        {d.checks && <div><div className="title-s" style={{ marginBottom: 10 }}>Перевірки</div>
-          <ul className="checks body-m">{d.checks.map((c, i) => <li key={i}><Ms style={c.ok ? undefined : { color: 'var(--md-error)' }}>{c.ok ? 'check_circle' : 'error'}</Ms>{c.t}</li>)}</ul>
-          {d.note && <div className="body-s muted" style={{ marginTop: 10 }}>{d.note}</div>}</div>}
+        {d.items && d.items.length > 0 && <div>
+          <div className="title-s" style={{ marginBottom: 8 }}>Номенклатура</div>
+          <div className="posting"><table><thead><tr><th>Найменування</th><th className="r">К-сть</th><th>Од.</th><th className="r">Ціна, ₴</th><th className="r">Сума, ₴</th></tr></thead>
+            <tbody>{d.items.map((it, i) => <tr key={i}><td>{it.name}</td><td className="r">{it.qty ?? '—'}</td><td>{it.unit ?? ''}</td><td className="r">{it.price != null ? fmt(it.price) : '—'}</td><td className="r">{it.amount != null ? fmt(it.amount) : '—'}</td></tr>)}</tbody></table></div>
+        </div>}
         {d.lines.length > 0 && <div>
           <div className="title-s" style={{ marginBottom: 8 }}>Запропоновані проводки</div>
           <div className="posting"><table><thead><tr><th>Дт</th><th>Кт</th><th className="r">Сума, ₴</th><th>Зміст</th></tr></thead>
             <tbody>{d.lines.map((l, i) => <tr key={i}><td>{l[0]}</td><td>{l[1]}</td><td className="r">{fmt(l[2])}</td><td className="body-s muted">{l[3]}</td></tr>)}</tbody></table></div>
         </div>}
+        {d.checks && <div><div className="title-s" style={{ marginBottom: 10 }}>Перевірки</div>
+          <ul className="checks body-m">{d.checks.map((c, i) => <li key={i}><Ms style={c.ok ? undefined : { color: 'var(--md-error)' }}>{c.ok ? 'check_circle' : 'error'}</Ms>{c.t}</li>)}</ul>
+          {d.note && <div className="body-s muted" style={{ marginTop: 10 }}>{d.note}</div>}</div>}
       </div>
       <div className="sheet-foot">
         <button className="btn btn-text sl" onClick={reject}>Відхилити</button>
-        <button className="btn btn-filled sl" disabled={d.st === 'ok'} onClick={post}><Ms>check</Ms>{d.st === 'ok' ? 'Проведено' : 'Провести'}</button>
+        <button className="btn btn-filled sl" disabled={d.st === 'ok'} onClick={post}><Ms>check</Ms>{d.st === 'ok' ? 'Проведено' : d.lines.length ? 'Провести' : 'Зберегти без проводок'}</button>
       </div>
     </>
   );

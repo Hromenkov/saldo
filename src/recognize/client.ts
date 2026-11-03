@@ -62,6 +62,6 @@ export async function recognizeFile(file: File, company: string, existing: Doc[]
     date: ddmm(r.date), y: r.date?.slice(0, 4), sum: r.total ?? 0, vat: r.vat ?? 0,
     st: autoReady(checks, conf) ? 'new' : 'check', src: body.mime === 'application/pdf' ? 'PDF' : 'Фото', conf,
     kind: r.kind === 'tax_invoice' ? 'pn' : r.kind, lines: postings(r, acc),
-    acc, edrpou, checks, note: r.note || r.account_reason
+    acc, edrpou, checks, note: r.note || r.account_reason, items: r.items
   };
 }

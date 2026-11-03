@@ -110,7 +110,13 @@ export function runChecks(r: Recognized, existing: Doc[], today = new Date(), co
     out.push({ ok: false, t: `Валюта ${r.currency}: потрібен перерахунок за курсом НБУ` });
   }
 
-  if (r.kind === 'invoice') out.push({ ok: false, t: 'Рахунок на оплату не є підставою для витрат: проводки будуть за актом або накладною, зараз лише очікувана оплата' });
+  const NOT_POSTING: Partial<Record<Recognized['kind'], string>> = {
+    invoice: 'Рахунок на оплату — не первинний документ: проводки будуть за накладною або актом',
+    tax_invoice: 'Податкова накладна — податковий документ: проводок не створює, звіримо з ЄРПН',
+    receipt: 'Чек — додаток до авансового звіту: проводок не створює',
+    other: 'Це не накладна і не акт: проводок не створює'
+  };
+  if (NOT_POSTING[r.kind]) out.push({ ok: false, t: NOT_POSTING[r.kind]! });
   const ours = (r.our_side?.name || '').trim();
   if (ours && company && !sameCompany(ours, company)) out.push({ ok: false, t: `У документі наша сторона — ${ours}, а не ${company}. Перевірте, чи це документ вашої компанії` });
   if (r.uncertain.length) out.push({ ok: false, t: 'Перевірте вручну: ' + [...new Set(r.uncertain.map(fieldLabel))].join(', ') });
@@ -129,18 +135,13 @@ export function postings(r: Recognized, acc: string): Doc['lines'] {
       L.push(['361', a.startsWith('70') ? a : '702', total, 'Дохід від реалізації']);
       if (vat) L.push([a.startsWith('70') ? a : '702', '643', vat, 'ПДВ зобов’язання']);
       break;
-    case 'tax_invoice':
-      if (r.direction === 'incoming') L.push(['6442', '6441', vat || total, 'Податковий кредит підтверджено ПН']);
-      else L.push(['643', '641', vat || total, 'Податкові зобов’язання з ПДВ']);
-      break;
-    case 'invoice':
-      break; // рахунок на оплату не є підставою для проводок
-    case 'receipt':
-      L.push([a, '372', total, 'Покупка за чеком через підзвітну особу']);
-      break;
-    default:
+    case 'purchase_goods':
+    case 'purchase_service':
       L.push([a, '631', net, r.kind === 'purchase_goods' ? 'Оприбутковано від постачальника' : 'Витрати за документом постачальника']);
       if (vat) L.push(['6441', '631', vat, 'ПДВ до отримання ПН']);
+      break;
+    default:
+      break; // проводки лише за накладною або актом; рахунок, ПН, ТТН, чек їх не створюють
   }
   return L;
 }
