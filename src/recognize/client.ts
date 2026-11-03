@@ -52,7 +52,7 @@ export async function recognizeFile(file: File, company: string, existing: Doc[]
   const edrpou = (r.counterparty.edrpou || '').replace(/\D/g, '') || undefined;
   const rule = ruleFor(edrpou);
   const acc = rule && (ACCOUNTS as readonly string[]).includes(rule) ? rule : r.account;
-  const checks = runChecks(r, existing);
+  const checks = runChecks(r, existing, new Date(), company);
   if (body.side && body.side < 1200) checks.push({ ok: false, t: `Фото дрібне (${body.side} px): цифри можуть читатися з помилками, краще сфотографувати ближче` });
   if (r.handwritten) checks.push({ ok: false, t: 'Заповнено від руки: звірте цифри з оригіналом перед проведенням' });
   if (rule) checks.unshift({ ok: true, t: `Рахунок ${acc.split(' ')[0]} за вашим правилом для цього контрагента` });

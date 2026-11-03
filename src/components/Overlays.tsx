@@ -93,7 +93,7 @@ function OpSheet({ i }: { i: number }) {
             <li><Ms>check_circle</Ms>Кореспонденція рахунків відповідає Інструкції 291</li>
             <li><Ms>check_circle</Ms>Сума проводок дорівнює сумі документа</li>
             {(o[1].includes('техкарт') || o[1].includes('ПРРО')) && <li><Ms>check_circle</Ms>Кількість списання = техкарта × продажі за зміну</li>}
-            {o[3].some(l => l.includes('644') || l.includes('641')) && <li><Ms>check_circle</Ms>ПДВ звірено з ЄРПН</li>}
+            {o[3].some(l => l.some(x => x.startsWith('644') || x === '641')) && <li><Ms>check_circle</Ms>ПДВ звірено з ЄРПН</li>}
             {o[5] === 'confirm' && <li><Ms>check_circle</Ms>Потрібне підтвердження відповідальної особи</li>}
           </ul></div>
         <div className="card card-filled"><div className="title-s">Тест шаблону</div><div className="body-s muted" style={{ marginTop: 4 }}>Еталонний приклад, перевірений бухгалтером-методологом: документ на вході дає саме ці проводки.</div><div style={{ marginTop: 10 }}><span className="status st-ok"><Ms>check</Ms>Пройдено</span></div></div>
