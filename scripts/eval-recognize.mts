@@ -25,6 +25,7 @@ for (const f of readdirSync(dir).filter(x => x.endsWith('.json'))) {
     for (const k of ['net', 'vat', 'total'] as const) if (e[k] != null && !near(r[k], e[k])) fails.push(`${k} ${r[k]}`);
     if (e.counterparty_name_has && !(r.counterparty?.name || '').includes(e.counterparty_name_has)) fails.push(`контрагент ${r.counterparty?.name}`);
     if (e.margin_notes_has && !(r.margin_notes || '').replace(/\D/g, '').includes(e.margin_notes_has)) fails.push(`приписка ${r.margin_notes}`);
+    for (const w of e.margin_notes_words || []) if (!(r.margin_notes || '').toLowerCase().includes(w.toLowerCase())) fails.push(`приписка без «${w}»: ${r.margin_notes}`);
     (e.items || []).forEach((it: any, i: number) => {
       const g = r.items?.[i] || {};
       if (it.name_has && !(g.name || '').includes(it.name_has)) fails.push(`рядок ${i + 1} назва ${g.name}`);
