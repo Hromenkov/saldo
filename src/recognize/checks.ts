@@ -148,7 +148,9 @@ export function runChecks(r: Recognized, existing: Doc[], today = new Date(), co
   const key = two ? [] : r.uncertain.filter(f => keyField(f) && !(noPost && keyField(f) === 'acc'));
   const soft = r.uncertain.filter(f => !key.includes(f) && !diffKey.includes(f) && !(noPost && /^(account|direction)$/.test(f)));
   for (const f of new Set(key.map(keyField))) out.push({ ok: false, field: f, t: 'Перевірте: ' + [...new Set(key.filter(k => keyField(k) === f).map(fieldLabel))].join(', ') });
-  if (soft.length) out.push({ ok: false, info: true, t: 'Модель не була певна, але це не впливає на облік або обидва читання збіглися: ' + [...new Set(soft.map(fieldLabel))].join(', ') });
+  // якщо два читання збіглися, «сумнів» моделі нічого не означає і не показується; технічні назви полів не показуються ніколи
+  const softShown = two ? [] : [...new Set(soft.filter(f => FIELD[f] || /^items\[\d+\]\.(name|unit)$/.test(f)).map(fieldLabel))];
+  if (softShown.length) out.push({ ok: false, info: true, t: 'Прочитано менш чітко, на облік не впливає: ' + softShown.join(', ') });
   return out;
 }
 

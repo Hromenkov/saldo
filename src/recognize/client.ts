@@ -76,7 +76,8 @@ export async function recognizeFile(file: File, company: string[], existing: Doc
   if (r.kind === 'purchase_goods' && r.items.length) {
     const m = r.items.map(it => matchItem(pk, it.name));
     const none = m.filter(x => !x).length, guess = m.filter(x => x && x.how !== 'map').length;
-    if (none) checks.push({ ok: false, t: `Номенклатура: ${none} з ${m.length} позицій немає в довіднику, прив’яжіть або додайте нові (один раз для цього постачальника)` });
+    // нова позиція не зупиняє документ: за замовчуванням її буде створено з назви постачальника, і прив’язка запам’ятається
+    if (none) checks.push({ ok: false, info: true, t: `Номенклатура: ${none} з ${m.length} позицій нові, їх буде додано до довідника з назвою постачальника` });
     else if (guess) checks.push({ ok: false, info: true, t: `Номенклатура: ${guess} з ${m.length} позицій зіставлено за схожою назвою; після підтвердження прив’язку буде запам’ятано` });
     else checks.push({ ok: true, t: 'Номенклатура: усі позиції за збереженими прив’язками' });
   }
@@ -98,7 +99,9 @@ export async function recognizeFile(file: File, company: string[], existing: Doc
     if (!fitsKind(r.kind, acc)) checks.push({ ok: false, field: 'acc', t: `Рахунок ${accN} не відповідає виду документа: ${r.kind === 'purchase_goods' ? 'для товарів 201, 281, 22 або 152' : r.kind === 'sale' ? 'для продажу 701, 702 або 703' : 'для послуг 23, 91, 92, 93 або 949'}` });
     // рахунок витрат зупиняє документ, лише коли зі змісту не видно підрозділу (23/91/92/93/949) і правила ще немає;
     // підтверджений рахунок запам’ятовується для контрагента, і наступні документи йдуть без питань
-    else if (!rule && !r.account_sure) checks.push({ ok: false, field: 'acc', t: `Рахунок ${accN} визначено з сумнівом${isCostAccount(acc) ? ': 23, 91, 92, 93 чи 949 — оберіть один раз, далі для цього контрагента діятиме правило' : ': оберіть рахунок'}` });
+    // червоним лише вибір між рахунками витрат 23/91/92/93/949 (його не можна вгадувати); 201/281/22 для товару пропонується
+    // і затверджується тим самим «Підтвердити», після чого стає правилом для постачальника
+    else if (!rule && !r.account_sure && isCostAccount(acc)) checks.push({ ok: false, field: 'acc', t: `Рахунок витрат ${accN}: 23, 91, 92, 93 чи 949 — оберіть один раз, далі для цього контрагента діятиме правило` });
     else if (!rule) checks.push({ ok: false, info: true, t: `Рахунок ${accN}: ${r.account_reason || 'за змістом документа'}. Після підтвердження стане правилом для контрагента` });
   }
   // підстава платежу: договір → заявка/рахунок → накладна/акт/реалізація або нарахування для податків
@@ -115,7 +118,10 @@ export async function recognizeFile(file: File, company: string[], existing: Doc
   const bad = checkLines(lines);
   checks.push(bad.length ? { ok: false, field: 'acc', t: 'План рахунків: ' + bad.map(b => b.t).join('; ') } : lines.length ? { ok: true, t: 'Проводки: рахунки з плану рахунків, кореспонденція допустима' } : { ok: true, t: 'Проводок немає' });
   if (rule) checks.unshift({ ok: true, t: `Рахунок ${acc.split(' ')[0]} за вашим правилом для цього контрагента` });
-  const conf = Math.max(0, Math.min(100, Math.round(r.confidence)));
+  // впевненість враховує звірку: два читання збіглися в ключових полях і арифметика зійшлася — документу можна довіряти
+  const modelConf = Math.max(0, Math.min(100, Math.round(r.confidence)));
+  const agreed = data.passes === 2 && !(data.diff || []).some(f => keyField(f)) && !checks.some(c => !c.ok && !c.info && c.field === 'sum');
+  const conf = agreed ? Math.max(modelConf, 95) : modelConf;
   return {
     id, type: r.doc_type, no: r.number || '—', cp: r.counterparty.name || 'Контрагент не визначений', cpRead,
     date: ddmm(r.date), y: r.date?.slice(0, 4), sum: r.total ?? 0, vat: r.vat ?? 0,

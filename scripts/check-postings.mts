@@ -145,6 +145,10 @@ ok(checkLines([['40', '311', 0, '']]).length > 0, 'Виплата грошей �
   const today = new Date('2026-11-03');
   const agreed = runChecks(n14, [], today, '', { passes: 2, diff: [] });
   ok(blocking(agreed).length === 0 && autoReady(agreed), 'Накладна № 14: два читання збіглися, сумнів моделі в назві/одиниці/сумі не зупиняє документ, приписка не перевіряється');
+  const raw = runChecks({ ...n14, uncertain: ['our_side.code', 'counterparty.name', 'items[0].unit', 'account'] } as Recognized, [], today, '', { passes: 2, diff: [] });
+  ok(!raw.some(c => /our_side|Модель не була|ЄДРПОУ\/ІПН/.test(c.t)) && blocking(raw).length === 0, 'Два читання збіглися: технічні назви полів і «модель не певна» не показуються');
+  const one = runChecks({ ...n14, uncertain: ['our_side.code', 'items[0].unit'] } as Recognized, [], today, '', { passes: 1 });
+  ok(!one.some(c => /our_side/.test(c.t)) && one.some(c => c.info && /одиниця в рядку 1/.test(c.t)), 'Одне читання: показуємо людською мовою лише відомі поля');
   const split = runChecks(n14, [], today, '', { passes: 2, diff: ['items[0].qty', 'items[0].name'] });
   const b = blocking(split);
   ok(b.length === 1 && b[0].field === 'sum', 'Читання розійшлися в кількості: зупиняє лише сума, назва товару — ні');
