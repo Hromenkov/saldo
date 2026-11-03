@@ -7,9 +7,10 @@ import { Ops } from './views/Ops';
 import { Assets } from './views/Assets';
 import { Structure } from './views/Structure';
 import { Payroll } from './views/Payroll';
+import { Vat } from './views/Vat';
 import { Stock } from './views/Stock';
 
-const VIEWS = { overview: Overview, questions: Questions, docs: Docs, bank: Bank, ledger: Ledger, close: Close, reports: Reports, ops: Ops, assets: Assets, structure: Structure, stock: Stock, payroll: Payroll };
+const VIEWS = { overview: Overview, questions: Questions, docs: Docs, bank: Bank, ledger: Ledger, close: Close, reports: Reports, ops: Ops, assets: Assets, structure: Structure, stock: Stock, vat: Vat, payroll: Payroll };
 
 export function Main() {
   const { s } = useApp();
