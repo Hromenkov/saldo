@@ -1,6 +1,7 @@
 // Браузерна частина: підготувати файл, надіслати на /api/recognize, зібрати документ для списку.
 import type { Doc } from '../data';
 import { autoReady, postings, runChecks } from './checks';
+import { matchItem } from './nomenclature';
 import { ruleFor } from './rules';
 import { ACCOUNTS } from './accounts';
 import type { RecognizeRequest, RecognizeResponse } from './schema';
@@ -55,6 +56,13 @@ export async function recognizeFile(file: File, company: string, existing: Doc[]
   const checks = runChecks(r, existing, new Date(), company);
   if (body.side && body.side < 1200) checks.push({ ok: false, t: `Фото дрібне (${body.side} px): цифри можуть читатися з помилками, краще сфотографувати ближче` });
   if (r.handwritten) checks.push({ ok: false, t: 'Заповнено від руки: звірте цифри з оригіналом перед проведенням' });
+  if (r.kind === 'purchase_goods' && r.items.length) {
+    const m = r.items.map(it => matchItem(edrpou, it.name));
+    const none = m.filter(x => !x).length, guess = m.filter(x => x?.how === 'guess').length;
+    if (none) checks.push({ ok: false, t: `Номенклатура: ${none} з ${m.length} позицій немає в довіднику, прив’яжіть або додайте нові` });
+    else if (guess) checks.push({ ok: false, t: `Номенклатура: ${guess} з ${m.length} позицій зіставлено за схожою назвою, підтвердіть` });
+    else checks.push({ ok: true, t: 'Номенклатура: усі позиції за збереженими прив’язками' });
+  }
   if (rule) checks.unshift({ ok: true, t: `Рахунок ${acc.split(' ')[0]} за вашим правилом для цього контрагента` });
   const conf = Math.max(0, Math.min(100, Math.round(r.confidence)));
   return {

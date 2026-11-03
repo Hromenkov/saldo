@@ -9,7 +9,7 @@ export type Doc = {
   /** поля розпізнаних та імпортованих документів */
   acc?: string; edrpou?: string; checks?: { ok: boolean; t: string }[]; note?: string;
   /** номенклатура: найменування, кількість, одиниця, ціна, сума */
-  items?: { name: string; qty: number | null; unit: string | null; price: number | null; amount: number | null }[];
+  items?: { name: string; qty: number | null; unit: string | null; price: number | null; amount: number | null; nom?: string }[];
 };
 export type BankRow = { d: string; cp: string; p: string; s: number; dt: string; kt: string; st: DocStatus };
 export type Question = { id: string; icon: string; title: string; meta: string[]; opts: [string, string][]; doc?: number };

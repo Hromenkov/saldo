@@ -1,7 +1,8 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { ACCOUNTS } from '../recognize/accounts';
 import { recognizeFile } from '../recognize/client';
 import { saveRule } from '../recognize/rules';
+import { bindItem, catalog, matchItem } from '../recognize/nomenclature';
 import { import1c, is1cFile, type Imported } from '../import1c';
 import { CHANGE_TYPES, OPS, type Doc } from '../data';
 import { useApp } from '../store';
@@ -10,11 +11,18 @@ import { cx, fmt, ModeChip, Ms, plural, StatusChip } from '../lib';
 function DocSheet({ id }: { id: number }) {
   const { s, upd, snack, closeSheet } = useApp();
   const accRef = useRef<HTMLSelectElement>(null);
+  const [pick, setPick] = useState<Record<number, string>>({});
   // після «Відхилити» документа вже немає в списку, але панель ще виїжджає: показуємо останній стан
   const last = useRef<Doc | undefined>(undefined);
   const d = s.docs.find(x => x.id === id) || last.current;
   last.current = d;
+  const cat = useMemo(() => catalog(), [d?.id]);
+  const auto = useMemo(() => (d?.items || []).map(it => it.nom ? undefined : matchItem(d?.edrpou, it.name, cat)), [d?.id, cat]);
   if (!d) return null;
+  // номенклатура: лише для товарної накладної кожен рядок має стати позицією нашого довідника
+  const goods = d.kind === 'purchase_goods' && !!d.items?.length;
+  const choiceOf = (i: number) => pick[i] ?? (d.items![i].nom ? 'done' : auto[i]?.id ?? '');
+  const unbound = goods && d.st !== 'ok' ? d.items!.filter((_, i) => !choiceOf(i)).length : 0;
   const needs = d.st === 'check';
   const net = d.sum - (d.kind === 'pn' ? 0 : d.vat);
   const accs: string[] = d.acc && !(ACCOUNTS as readonly string[]).includes(d.acc) ? [d.acc, ...ACCOUNTS] : [...ACCOUNTS];
@@ -24,7 +32,14 @@ function DocSheet({ id }: { id: number }) {
     const acc = accRef.current?.value;
     // підтверджений рахунок стає правилом для цього контрагента
     if (d.edrpou && acc && d.checks) saveRule(d.edrpou, acc);
-    upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) { dd.st = 'ok'; if (acc && d.checks) dd.acc = acc; } });
+    // прив'язки рядків постачальника до нашого довідника запам'ятовуються для наступних накладних
+    const noms = goods ? d.items!.map((it, i) => {
+      const c = choiceOf(i);
+      if (c === 'done') return it.nom;
+      const nid = bindItem(d.edrpou, it.name, c, it.unit);
+      return catalog().find(x => x.id === nid)?.name;
+    }) : [];
+    upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) { dd.st = 'ok'; if (acc && d.checks) dd.acc = acc; if (goods) dd.items!.forEach((it, i) => { it.nom = noms[i]; }); } });
     closeSheet();
     snack(`${d.type} № ${d.no} проведено`, () => upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) dd.st = prev; }));
   };
@@ -59,8 +74,21 @@ function DocSheet({ id }: { id: number }) {
         </div>
         {d.items && d.items.length > 0 && <div>
           <div className="title-s" style={{ marginBottom: 8 }}>Номенклатура</div>
-          <div className="posting"><table><thead><tr><th>Найменування</th><th className="r">К-сть</th><th>Од.</th><th className="r">Ціна, ₴</th><th className="r">Сума, ₴</th></tr></thead>
-            <tbody>{d.items.map((it, i) => <tr key={i}><td>{it.name}</td><td className="r">{it.qty ?? '—'}</td><td>{it.unit ?? ''}</td><td className="r">{it.price != null ? fmt(it.price) : '—'}</td><td className="r">{it.amount != null ? fmt(it.amount) : '—'}</td></tr>)}</tbody></table></div>
+          <div className="posting" style={{ overflowX: 'auto' }}><table><thead><tr><th>Як у постачальника</th>{goods && <th>Позиція нашого довідника</th>}<th className="r">К-сть</th><th>Од.</th><th className="r">Ціна, ₴</th><th className="r">Сума, ₴</th></tr></thead>
+            <tbody>{d.items.map((it, i) => {
+              const c = choiceOf(i), a = auto[i];
+              return <tr key={i}><td>{it.name}</td>
+                {goods && <td style={{ minWidth: 190 }}>{c === 'done' || d.st === 'ok' ? <span>{it.nom}</span> : <>
+                  <select className="nom-sel" aria-label={`Позиція довідника для «${it.name}»`} value={c} onChange={e => { const v = e.target.value; setPick(p => ({ ...p, [i]: v })); }}>
+                    <option value="">Оберіть позицію…</option>
+                    {cat.map(o => <option key={o.id} value={o.id}>{o.name}, {o.unit}</option>)}
+                    <option value="new">+ Нова позиція: {it.name}</option>
+                  </select>
+                  <div className="body-s" style={{ marginTop: 2, color: !c ? 'var(--md-error)' : undefined }}>{!c ? 'Немає в довіднику' : pick[i] !== undefined ? (c === 'new' ? 'Буде додано до довідника' : 'Обрано вручну') : a?.how === 'map' ? 'За збереженою прив’язкою' : 'Схожа назва: перевірте'}</div>
+                </>}</td>}
+                <td className="r">{it.qty ?? '—'}</td><td>{it.unit ?? ''}</td><td className="r">{it.price != null ? fmt(it.price) : '—'}</td><td className="r">{it.amount != null ? fmt(it.amount) : '—'}</td></tr>;
+            })}</tbody></table></div>
+          {unbound > 0 && <div className="body-s" style={{ marginTop: 6, color: 'var(--md-error)' }}>{unbound} {plural(unbound, 'позицію', 'позиції', 'позицій')} не прив’язано до довідника. Без цього на складі з’являться дублікати</div>}
         </div>}
         {d.lines.length > 0 && <div>
           <div className="title-s" style={{ marginBottom: 8 }}>Запропоновані проводки</div>
@@ -73,7 +101,7 @@ function DocSheet({ id }: { id: number }) {
       </div>
       <div className="sheet-foot">
         <button className="btn btn-text sl" onClick={reject}>Відхилити</button>
-        <button className="btn btn-filled sl" disabled={d.st === 'ok'} onClick={post}><Ms>check</Ms>{d.st === 'ok' ? 'Проведено' : d.lines.length ? 'Провести' : 'Зберегти без проводок'}</button>
+        <button className="btn btn-filled sl" disabled={d.st === 'ok' || unbound > 0} onClick={post}><Ms>check</Ms>{d.st === 'ok' ? 'Проведено' : d.lines.length ? 'Провести' : 'Зберегти без проводок'}</button>
       </div>
     </>
   );
