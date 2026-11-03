@@ -9,6 +9,7 @@ import { activeItems, bindItem, catalog, matchItem, mergeFromBas } from '../reco
 import { import1c, is1cFile, type Imported } from '../import1c';
 import { CHANGE_TYPES, OPS, type Doc } from '../data';
 import { useApp } from '../store';
+import { AssetSheet } from '../views/Assets';
 import { cx, fmt, ModeChip, Ms, plural, StatusChip } from '../lib';
 
 function DocSheet({ id }: { id: number }) {
@@ -334,6 +335,7 @@ export function Overlays() {
       <aside className={cx('sheet', s.sheetOpen && 'open')} id="sheet" aria-label="Документ">
         {s.sheet?.kind === 'doc' && <DocSheet key={s.overlaySeq} id={s.sheet.id} />}
         {s.sheet?.kind === 'op' && <OpSheet key={s.overlaySeq} i={s.sheet.i} />}
+        {s.sheet?.kind === 'asset' && <AssetSheet key={s.overlaySeq} id={s.sheet.id} />}
       </aside>
       <div className={cx('scrim', s.dialogOpen && 'open')} id="dlgScrim" onClick={hideDialog} />
       <div className="dialog-wrap"><div className={cx('dialog', s.dialogOpen && 'open')} id="dialog" role="dialog" aria-modal="true">
