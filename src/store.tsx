@@ -2,9 +2,10 @@ import { createContext, useCallback, useContext, useMemo, useRef, useState, type
 import { produce, type Draft } from 'immer';
 import { ASSETS, BANK, CLOSE, DOCS, HISTORY, LEDGER, QUESTIONS, REPORTS, type Biz, type Form, type HistoryItem } from './data';
 import { INITIAL_CHAT, type Msg } from './chat';
+import { asOf, audit } from './audit';
 
 export type Role = 'owner' | 'acc';
-export type View = 'overview' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'assets' | 'structure' | 'stock' | 'vat' | 'payroll' | 'credit';
+export type View = 'overview' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'assets' | 'structure' | 'stock' | 'vat' | 'payroll' | 'credit' | 'audit';
 export type Sheet = { kind: 'doc'; id: number } | { kind: 'op'; i: number } | { kind: 'asset'; id: string };
 export type Dialog = { kind: 'sign'; name: string; per: string } | { kind: 'upload' } | { kind: 'plan' } | { kind: 'act'; cp: string; edrpou?: string };
 
@@ -29,9 +30,13 @@ export type State = {
   drawerOpen: boolean; onbOpen: boolean;
 };
 
+/** Кількість помилок аудиту для значка в меню; рахується з тих самих документів і банку */
+const auditErrors = (s: State) => audit(s.docs, s.bank, { today: asOf() }).errors;
+
 export const NAV: Record<Role, [View, string, string, ((s: State) => number | '')?][]> = {
   owner: [
     ['overview', 'space_dashboard', 'Огляд'],
+    ['audit', 'fact_check', 'Аудит', s => auditErrors(s) || ''],
     ['questions', 'contact_support', 'Питання', s => s.questions.length || ''],
     ['reports', 'description', 'Звітність', s => s.reports.filter(r => r.st === 'ready').length || ''],
     ['docs', 'folder_open', 'Документи'],
@@ -42,6 +47,7 @@ export const NAV: Record<Role, [View, string, string, ((s: State) => number | ''
   acc: [
     ['docs', 'inbox', 'Вхідні документи', s => s.docs.filter(d => d.st !== 'ok').length || ''],
     ['bank', 'account_balance', 'Банк', s => s.bank.filter(b => b.st !== 'ok').length || ''],
+    ['audit', 'fact_check', 'Аудит до копійки', s => auditErrors(s) || ''],
     ['questions', 'contact_support', 'Питання власнику', s => s.questions.length || ''],
     ['stock', 'inventory_2', 'Склад'],
     ['ops', 'account_tree', 'Типові операції'],
