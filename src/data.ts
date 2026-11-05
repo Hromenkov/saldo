@@ -18,6 +18,8 @@ export type Doc = {
   /** підстава грошового документа (договір, заявка, рахунок, накладна, період) і стаття руху коштів */
   refs?: { contract_no?: string | null; contract_date?: string | null; order_no?: string | null; invoice_no?: string | null; primary_no?: string | null; period?: string | null };
   cf?: string;
+  /** коли вивантажено в BAS (ISO-дата); порожньо — ще не вивантажено */
+  basAt?: string;
 };
 export type BankRow = { d: string; cp: string; p: string; s: number; dt: string; kt: string; st: DocStatus };
 export type Question = { id: string; icon: string; title: string; meta: string[]; opts: [string, string][]; doc?: number };

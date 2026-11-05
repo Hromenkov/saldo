@@ -554,3 +554,11 @@ body { background: var(--app-bg); }
 #root { height: 100%; }
 .nom-sel { width: 100%; font: inherit; font-size: 13px; color: var(--md-on-surface); background: var(--md-surface-container-lowest); border: 1px solid var(--md-outline-variant); border-radius: 8px; padding: 6px 8px; }
 .nom-sel:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 1px; }
+
+/* Пульс власника: плитки-кнопки з кольоровою іконкою стану */
+.pulse-tile { font: inherit; color: inherit; cursor: pointer; }
+.pulse-tile:disabled { cursor: default; }
+.pulse-tile .v { font-size: 22px; line-height: 30px; overflow-wrap: anywhere; }
+.pulse-tile.tone-red .top .ms { background: var(--md-error-container); color: var(--md-on-error-container); }
+.pulse-tile.tone-yellow .top .ms { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+.pulse-tile.tone-green .top .ms { background: var(--md-success-container); color: var(--md-on-success-container); }

@@ -9,13 +9,14 @@ import { asOf } from '../audit';
 import { DEFAULT_COMPANY } from '../recognize/companies';
 
 /** Файл EnterpriseData для BAS: лише проведені документи без помилок аудиту. */
-function exportBas(docs: Doc[], snack: (t: string) => void) {
+function exportBas(docs: Doc[], snack: (t: string) => void, done: (ids: number[]) => void) {
   const r = toEnterpriseData(docs, { name: DEFAULT_COMPANY }, { today: asOf() });
   if (!r.sent.length) { snack(r.held.length ? `Нічого вивантажувати: ${r.held.length} документів не пройшли аудит або не проведені` : 'Нових документів для BAS немає'); return; }
   const a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([r.xml], { type: 'application/xml' }));
   a.download = `saldo-bas-${new Date().toISOString().slice(0, 10)}.xml`;
   a.click(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+  done(r.sent.map(d => d.id));
   snack(`У файл для BAS: ${r.sent.length} док.${r.held.length ? `, затримано ${r.held.length}: ${r.held.map(h => '№ ' + h.doc.no + ' — ' + h.why).join('; ')}` : ''}`);
 }
 
@@ -77,7 +78,7 @@ export function Docs() {
     <div className="page">
       <div className="page-head"><h1 className="headline-s">{s.role === 'acc' ? 'Вхідні документи' : 'Документи'}</h1><span className="spacer" />
         <button className="btn btn-outlined sl" onClick={() => snack('Надішліть фото на docs@saldo.ua або в Telegram-бот @saldo_docs_bot')}><Ms>alternate_email</Ms>Як надсилати</button>
-        <button className="btn btn-outlined sl" onClick={() => exportBas(s.docs, snack)} title="Файл EnterpriseData: BAS → Вивантаження і завантаження даних EnterpriseData"><Ms>output</Ms>Вивантажити в BAS</button>
+        <button className="btn btn-outlined sl" onClick={() => exportBas(s.docs, snack, ids => upd(d => { const at = new Date().toISOString().slice(0, 10); d.docs.forEach(x => { if (ids.includes(x.id)) x.basAt = at; }); }))} title="Файл EnterpriseData: BAS → Вивантаження і завантаження даних EnterpriseData"><Ms>output</Ms>Вивантажити в BAS</button>
         <button className="btn btn-filled sl" onClick={() => openDialog({ kind: 'upload' })}><Ms>upload</Ms>Завантажити</button></div>
       <div className="tabs" role="tablist">{tabs.map(([k, l]) => (
         <button key={k} className="tab" role="tab" aria-selected={f === k} onClick={() => upd(d => { d.docTab = k; })}>{l} <span className="muted">{s.docs.filter(d => k === 'all' || d.st === k).length}</span></button>

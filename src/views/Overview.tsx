@@ -5,6 +5,7 @@ import { fmt, fmt0, Ms } from '../lib';
 import { BankTable, Chart } from '../components/Tables';
 import { StatValue } from '../MainView';
 import { asOf, audit, money } from '../audit';
+import { Pulse } from './Pulse';
 
 const PERIODS = ['Листопад 2026', 'Жовтень 2026', 'IV квартал 2026', '2026 рік'];
 
@@ -81,13 +82,15 @@ export function Overview() {
           <button className="btn btn-filled sl" onClick={() => go('questions')}>Відповісти</button>
         </div>
       )}
-      {au.errors > 0 && (
+      {s.role === 'owner' && <Pulse />}
+      {au.errors > 0 && s.role !== 'owner' && (
         <div className="banner"><span className="ms fill">fact_check</span>
           <div className="txt"><div className="title-s">Аудит знайшов {au.errors} {au.errors === 1 ? 'помилку' : au.errors < 5 ? 'помилки' : 'помилок'} на {money(au.atStake)} ₴</div><div className="body-m">Перевірено {au.checked} документів до копійки: суми, ПДВ, проводки, дублікати, оплати.</div></div>
           <button className="btn btn-filled sl" onClick={() => go('audit')}>Подивитися</button>
         </div>
       )}
-      <div className="grid g4">{cards.map(([ic, t, v, d]) => <StatCard key={t} ic={ic} t={t} v={v} d={d} />)}</div>
+      {/* у власника замість демо-показників — «Пульс», порахований з документів і банку */}
+      {s.role !== 'owner' && <div className="grid g4">{cards.map(([ic, t, v, d]) => <StatCard key={t} ic={ic} t={t} v={v} d={d} />)}</div>}
       <div className="grid g2" style={{ marginTop: 12 }}>
         <div className="card card-outlined">
           <div className="section-title" style={{ margin: '0 0 8px' }}><span className="title-m">{m ? 'Усі гроші, листопад' : 'Грошові кошти (301, 311), листопад'}</span><button className="icon-btn sl" aria-label="Більше"><Ms>more_vert</Ms></button></div>
