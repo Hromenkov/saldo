@@ -78,7 +78,8 @@ const DOC_NAMES: Record<string, [string, string]> = {
   АктВыполненныхРабот: ['Акт виконаних робіт', 'purchase_service']
 };
 
-const kids = (el: Element) => Array.from(el.children);
+// childNodes, а не children: так само працює і в браузері, і в xmldom у перевірках
+const kids = (el: Element) => Array.from(el.childNodes).filter((n): n is Element => n.nodeType === 1);
 const first = (el: Element | undefined, ...names: string[]): Element | undefined => {
   if (!el) return undefined;
   for (const n of names) {
@@ -115,18 +116,34 @@ export function parseEnterpriseData(text: string): Imported {
     const name = el.localName;
     if (name === 'Справочник.Контрагенты') { partners++; continue; }
     if (name === 'Справочник.Номенклатура') { addItem(el, true); continue; }
-    if (name.startsWith('Документ.')) Array.from(el.getElementsByTagName('*')).filter(x => x.localName === 'Номенклатура' && x.children.length).forEach(x => addItem(x));
+    if (name.startsWith('Документ.')) Array.from(el.getElementsByTagName('*')).filter(x => x.localName === 'Номенклатура' && kids(x).length).forEach(x => addItem(x));
     if (!name.startsWith('Документ.')) continue;
     const short = name.slice('Документ.'.length);
-    const [type, kind] = DOC_NAMES[short] || [short.replace(/([а-яієї])([А-ЯІЄЇ])/g, '$1 $2'), 'other'];
+    let [type, kind] = DOC_NAMES[short] || [short.replace(/([а-яієї])([А-ЯІЄЇ])/g, '$1 $2'), 'other'];
+    // поступлення лише з табличною частиною «Услуги» — це акт, а не накладна
+    if (short === 'ПоступлениеТоваровУслуг' && kids(el).some(t => t.localName === 'Услуги') && !kids(el).some(t => t.localName === 'Товары')) [type, kind] = ['Акт наданих послуг', 'purchase_service'];
     const key = first(el, 'КлючевыеСвойства') || el;
     const cpEl = first(el, 'Контрагент');
-    const sum = num(txt(el, 'СуммаДокумента', 'Сумма'));
-    const vat = num(txt(el, 'СуммаНДС'));
+    // рядки табличних частин «Товары» і «Услуги»: з них аудит перевіряє кількість × ціну і ПДВ
+    const rows = kids(el).filter(t => t.localName === 'Товары' || t.localName === 'Услуги').flatMap(t => kids(t).filter(r => r.localName === 'Строка'));
+    const own = (r: Element, n: string) => kids(r).find(x => x.localName === n)?.textContent?.trim() || '';
+    const docItems = rows.map(r => {
+      const nom = first(r, 'Номенклатура'), unitEl = first(r, 'ЕдиницаИзмерения');
+      return {
+        name: txt(nom, 'Наименование') || txt(r, 'Содержание') || '—', qty: own(r, 'Количество') ? num(own(r, 'Количество')) : null,
+        unit: unitEl ? (txt(unitEl, 'Наименование') || unitEl.textContent?.trim() || null) : null,
+        price: own(r, 'Цена') ? num(own(r, 'Цена')) : null, amount: own(r, 'Сумма') ? num(own(r, 'Сумма')) : null,
+        vat: num(own(r, 'СуммаНДС'))
+      };
+    });
+    const top = (n: string) => kids(el).find(x => x.localName === n)?.textContent?.trim();
+    const sum = num(top('СуммаДокумента') ?? top('Сумма') ?? txt(el, 'СуммаДокумента', 'Сумма'));
+    const vat = top('СуммаНДС') != null ? num(top('СуммаНДС')) : rows.length ? Math.round(docItems.reduce((a, x) => a + x.vat, 0) * 100) / 100 : num(txt(el, 'СуммаНДС'));
     docs.push({
       type, no: txt(key, 'Номер') || '—', cp: txt(cpEl, 'НаименованиеПолное', 'Наименование') || '—',
       date: ddmm(txt(key, 'Дата')), y: txt(key, 'Дата').slice(0, 4) || undefined, sum, vat, st: 'ok', src: '1С', conf: 100, kind,
-      lines: [], edrpou: txt(cpEl, 'КодПоЕДРПОУ', 'ИНН') || undefined
+      lines: [], edrpou: txt(cpEl, 'КодПоЕДРПОУ', 'ИНН') || undefined,
+      ...(docItems.length ? { items: docItems.map(({ vat: _v, ...it }) => it) } : {})
     });
   }
   if (!docs.length && !items.size) throw new Error(partners ? `У файлі лише довідник контрагентів (${partners}), документів і номенклатури немає` : 'У файлі не знайдено документів');

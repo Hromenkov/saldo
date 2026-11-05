@@ -96,7 +96,8 @@ export function auditDoc(d: Doc, opts: AuditOpts = {}): Finding[] {
       if (vatPosted !== vat) add('error', 'post', `ПДВ у проводках ${m(vatPosted)} ₴, а в документі ${m(vat)} ₴`, vatPosted - vat);
     }
     for (const iss of checkLines(d.lines)) add('error', 'post', `Проводка ${iss.line + 1}: ${iss.t}`);
-  } else if (vatKind && d.st === 'ok') add('warn', 'post', 'Документ проведено без проводок');
+  // документи з 1С приходять без проводок: вони вже проведені там
+  } else if (vatKind && d.st === 'ok' && d.src !== '1С') add('warn', 'post', 'Документ проведено без проводок');
 
   // 5. Реквізити контрагента
   const code = (d.edrpou || '').replace(/\D/g, '');

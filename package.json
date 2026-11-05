@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && tsx scripts/check-schema.mts && tsx scripts/check-postings.mts && tsx scripts/check-finance.mts && tsx scripts/check-assets.mts && tsx scripts/check-stock.mts && tsx scripts/check-vat.mts && tsx scripts/check-payroll.mts && tsx scripts/check-audit.mts && vite build",
+    "build": "tsc -b && tsx scripts/check-schema.mts && tsx scripts/check-postings.mts && tsx scripts/check-finance.mts && tsx scripts/check-assets.mts && tsx scripts/check-stock.mts && tsx scripts/check-vat.mts && tsx scripts/check-payroll.mts && tsx scripts/check-audit.mts && tsx scripts/check-export.mts && vite build",
     "preview": "vite preview",
     "check:functions": "tsc -p tsconfig.functions.json",
-    "test": "tsx scripts/check-schema.mts && tsx scripts/check-postings.mts && tsx scripts/check-finance.mts && tsx scripts/check-assets.mts && tsx scripts/check-stock.mts && tsx scripts/check-vat.mts && tsx scripts/check-payroll.mts && tsx scripts/check-audit.mts",
+    "test": "tsx scripts/check-schema.mts && tsx scripts/check-postings.mts && tsx scripts/check-finance.mts && tsx scripts/check-assets.mts && tsx scripts/check-stock.mts && tsx scripts/check-vat.mts && tsx scripts/check-payroll.mts && tsx scripts/check-audit.mts && tsx scripts/check-export.mts",
     "eval": "tsx scripts/eval-recognize.mts"
   },
   "dependencies": {
@@ -24,6 +24,7 @@
     "@types/react": "^19.2.2",
     "@types/react-dom": "^19.2.2",
     "@vitejs/plugin-react": "^5.1.0",
+    "@xmldom/xmldom": "^0.9.8",
     "tsx": "^4.23.15",
     "typescript": "^5.9.3",
     "vite": "^7.1.12"
