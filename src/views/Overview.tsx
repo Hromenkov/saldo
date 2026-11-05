@@ -4,6 +4,7 @@ import { useApp } from '../store';
 import { fmt, fmt0, Ms } from '../lib';
 import { BankTable, Chart } from '../components/Tables';
 import { StatValue } from '../MainView';
+import { asOf, audit, money } from '../audit';
 
 const PERIODS = ['Листопад 2026', 'Жовтень 2026', 'IV квартал 2026', '2026 рік'];
 
@@ -61,6 +62,7 @@ export function Overview() {
   ];
   const setMode = (mode: 'mgmt' | 'acc') => upd(d => { d.mode = mode; });
   const tabIc = { verticalAlign: -4, marginRight: 6 };
+  const au = audit(s.docs, s.bank, { today: asOf() });
 
   return (
     <div className="page">
@@ -77,6 +79,12 @@ export function Overview() {
         <div className="banner"><span className="ms fill">contact_support</span>
           <div className="txt"><div className="title-s">{s.questions.length} питання чекають на вашу відповідь</div><div className="body-m">Без них система не може провести частину документів.</div></div>
           <button className="btn btn-filled sl" onClick={() => go('questions')}>Відповісти</button>
+        </div>
+      )}
+      {au.errors > 0 && (
+        <div className="banner"><span className="ms fill">fact_check</span>
+          <div className="txt"><div className="title-s">Аудит знайшов {au.errors} {au.errors === 1 ? 'помилку' : au.errors < 5 ? 'помилки' : 'помилок'} на {money(au.atStake)} ₴</div><div className="body-m">Перевірено {au.checked} документів до копійки: суми, ПДВ, проводки, дублікати, оплати.</div></div>
+          <button className="btn btn-filled sl" onClick={() => go('audit')}>Подивитися</button>
         </div>
       )}
       <div className="grid g4">{cards.map(([ic, t, v, d]) => <StatCard key={t} ic={ic} t={t} v={v} d={d} />)}</div>
