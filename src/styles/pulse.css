@@ -1,0 +1,7 @@
+/* Пульс власника: плитки-кнопки з кольоровою іконкою стану */
+.pulse-tile { font: inherit; color: inherit; cursor: pointer; }
+.pulse-tile:disabled { cursor: default; }
+.pulse-tile .v { font-size: 22px; line-height: 30px; overflow-wrap: anywhere; }
+.pulse-tile.tone-red .top .ms { background: var(--md-error-container); color: var(--md-on-error-container); }
+.pulse-tile.tone-yellow .top .ms { background: var(--md-tertiary-container); color: var(--md-on-tertiary-container); }
+.pulse-tile.tone-green .top .ms { background: var(--md-success-container); color: var(--md-on-success-container); }
