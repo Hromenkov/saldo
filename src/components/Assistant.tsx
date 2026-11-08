@@ -78,7 +78,7 @@ export function Assistant({ open, wide, onClose }: { open: boolean; wide: boolea
               {m.acts && m.body.t !== 'typing' && (
                 <div className={cx('acts', m.done && 'done')}>
                   {m.acts.map(([label, kind]) => (
-                    <button key={label} className={kind === 'chip' ? 'm-chip sl' : 'btn ' + kind + ' sl'} onClick={() => onAct(m.id, label)}>{label}</button>
+                    <button key={label} className={kind === 'chip' ? 'chip sl' : 'btn ' + kind + ' sl'} onClick={() => onAct(m.id, label)}>{label}</button>
                   ))}
                 </div>
               )}

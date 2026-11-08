@@ -88,7 +88,7 @@ export function UploadDialog() {
       <Ms className="d-ic">upload_file</Ms>
       <h2 className="headline-s">Завантажити документи</h2>
       <p className="body-m muted" style={{ margin: 0, textAlign: 'center' }}>PDF або фото: система сама розпізнає тип документа і запропонує проводки. Також вивантаження з 1С/BAS: EnterpriseData (XML), виписка клієнт-банку (TXT), ОСВ (Excel).</p>
-      <label className="m-card card-outlined" style={{ borderStyle: 'dashed', textAlign: 'center', padding: 28, cursor: 'pointer', display: 'block' }}
+      <label className="card card-outlined" style={{ borderStyle: 'dashed', textAlign: 'center', padding: 28, cursor: 'pointer', display: 'block' }}
         onDragOver={e => e.preventDefault()} onDrop={e => { e.preventDefault(); handle(e.dataTransfer.files); }}>
         <Ms style={{ fontSize: 40, color: 'var(--md-primary)' }}>cloud_upload</Ms>
         <div className="title-s" style={{ marginTop: 8 }}>Перетягніть файли сюди</div><div className="body-s muted">або натисніть, щоб вибрати</div>

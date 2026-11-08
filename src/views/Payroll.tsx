@@ -69,7 +69,7 @@ export function Payroll() {
         <StatCard ic="wallet" t="До виплати" v={fmt0(run.totals.net) + ' ₴'} d="661 · ПДФО і ВЗ у день виплати" />
       </div>
 
-      <div className="m-tabs" role="tablist">{tabs.map(([k, l]) => <button key={k} className="tab" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}{k === 'pay' && orders.length > 0 && <span className="muted"> {orders.length}</span>}</button>)}</div>
+      <div className="tabs" role="tablist">{tabs.map(([k, l]) => <button key={k} className="tab" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}{k === 'pay' && orders.length > 0 && <span className="muted"> {orders.length}</span>}</button>)}</div>
 
       {tab === 'calc' && <div className="table-wrap"><table className="dt" style={{ minWidth: 1100 }}>
         <thead><tr><th>Працівник</th><th>Рахунок витрат</th><th className="r">Оплата часу</th><th className="r">Премія</th><th className="r">Відпускні</th><th className="r">Лікарняні</th><th className="r">Нараховано</th><th className="r">ПДФО</th><th className="r">ВЗ</th><th className="r">До виплати</th><th className="r">ЄСВ</th></tr></thead>
@@ -102,7 +102,7 @@ export function Payroll() {
 
       {tab === 'pay' && (orders.length
         ? <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,460px),1fr))' }}>{orders.map(o => (
-          <div key={o.id} className="m-card card-outlined" style={{ padding: 16 }}>
+          <div key={o.id} className="card card-outlined" style={{ padding: 16 }}>
             <div style={{ display: 'flex', gap: 8, alignItems: 'baseline' }}><span className="title-m">{o.kind === 'net' ? 'Виплата зарплати' : TAX_INFO[o.kind].name}</span><span className="spacer" style={{ flex: 1 }} /><span className="title-m num">{fmt(o.amount)} ₴</span></div>
             <div className="body-s muted" style={{ marginTop: 4 }}>{o.recipient} · {dateUa(o.date)} · Дт {o.dt} Кт {o.kt} · {o.article}</div>
             <div className="body-m" style={{ marginTop: 8, fontFamily: o.kind === 'net' ? undefined : 'monospace', wordBreak: 'break-word' }}>{o.purpose}</div>

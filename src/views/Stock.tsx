@@ -49,7 +49,7 @@ export function Stock() {
         <StatCard ic="menu_book" t="Техкарт" v={String(st.cards.filter(c => !c.archived).length)} d="з напівфабрикатами" />
         <StatCard ic={errors ? 'error' : 'verified'} t="Від’ємних залишків" v="0" d={errors ? `${errors} ${plural(errors, 'рух не проведено', 'рухи не проведено', 'рухів не проведено')}` : 'рух без залишку не проводиться'} />
       </div>
-      <div className="m-tabs" role="tablist">{TABS.map(([k, l]) => <button key={k} className="tab" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
+      <div className="tabs" role="tablist">{TABS.map(([k, l]) => <button key={k} className="tab" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
       {tab === 'bal' && <Balances bal={bal} lots={L.lots} />}
       {tab === 'sale' && <SaleForm />}
       {tab === 'ops' && <OpsForm />}
@@ -66,7 +66,7 @@ function Balances({ bal, lots }: { bal: ReturnType<typeof balances>; lots: Retur
   const rows = bal.filter(b => !loc || b.loc === loc).sort((a, b) => nameOf(a.item).localeCompare(nameOf(b.item)) || a.loc.localeCompare(b.loc));
   return <>
     <div className="chips" style={{ marginBottom: 12 }}>
-      {[['', 'Усі склади'], ...st.locations.map(l => [l.id, l.name])].map(([id, n]) => <button key={id} className="m-chip sl" aria-pressed={loc === id} onClick={() => setLoc(id)}>{loc === id && <Ms>check</Ms>}{n}</button>)}
+      {[['', 'Усі склади'], ...st.locations.map(l => [l.id, l.name])].map(([id, n]) => <button key={id} className="chip sl" aria-pressed={loc === id} onClick={() => setLoc(id)}>{loc === id && <Ms>check</Ms>}{n}</button>)}
     </div>
     {rows.length ? <div className="table-wrap"><table className="dt">
       <thead><tr><th>Позиція</th>{!loc && <th>Склад</th>}<th>Рахунок</th><th className="r">Кількість</th><th className="r">Ціна, ₴</th><th className="r">Сума, ₴</th><th className="r">Партій</th></tr></thead>
@@ -99,7 +99,7 @@ function SaleForm() {
     if (!e) { setQty({}); snack(`Списано сировину за ${sales.length} ${plural(sales.length, 'стравою', 'стравами', 'стравами')}`, () => removeMovement(mv.id)); }
   };
   return <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', alignItems: 'start' }}>
-    <div className="m-card card-outlined">
+    <div className="card card-outlined">
       <div className="title-m" style={{ marginBottom: 12 }}>Продано за зміну</div>
       <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
         <input type="date" style={inp} value={date} onChange={e => setDate(e.target.value)} aria-label="Дата" />
@@ -109,7 +109,7 @@ function SaleForm() {
         <td style={{ width: 110 }}><input style={{ ...inp, textAlign: 'right' }} inputMode="decimal" placeholder="0" value={qty[c.id] || ''} onChange={e => setQty(q => ({ ...q, [c.id]: e.target.value.replace(',', '.') }))} aria-label={`Продано: ${c.name}`} /></td><td className="muted body-s">{c.unit}</td></tr>)}</tbody></table>
       <div className="body-s muted" style={{ marginTop: 8 }}>Кількість — з Z-звіту ПРРО. Напівфабрикати розкладаються на сировину за своїми картками.</div>
     </div>
-    <div className="m-card card-outlined">
+    <div className="card card-outlined">
       <div className="title-m" style={{ marginBottom: 12 }}>Буде списано</div>
       {!sales.length ? <div className="body-m muted">Вкажіть кількість проданих страв</div> : ex.error ? <Err t={ex.error} /> : <>
         <table className="dt compact"><thead><tr><th>Сировина</th><th className="r">Кількість</th><th className="r">Собівартість, ₴</th></tr></thead>
@@ -151,9 +151,9 @@ function OpsForm() {
   };
   const fillCount = () => setRows(balances(L.lots).filter(b => b.loc === loc).map(b => ({ item: b.item, qty: String(b.qty) })));
   return <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fit,minmax(min(100%,420px),1fr))', alignItems: 'start' }}>
-    <div className="m-card card-outlined">
+    <div className="card card-outlined">
       <div className="chips" style={{ marginBottom: 12 }}>{([['move', 'Переміщення'], ['out', 'Списання на витрати'], ['count', 'Інвентаризація']] as [OpKind, string][]).map(([k, l]) =>
-        <button key={k} className="m-chip sl" aria-pressed={kind === k} onClick={() => { setKind(k); setErr(null); }}>{kind === k && <Ms>check</Ms>}{l}</button>)}</div>
+        <button key={k} className="chip sl" aria-pressed={kind === k} onClick={() => { setKind(k); setErr(null); }}>{kind === k && <Ms>check</Ms>}{l}</button>)}</div>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginBottom: 12 }}>
         <input type="date" style={inp} value={date} onChange={e => setDate(e.target.value)} aria-label="Дата" />
         <select className="nom-sel" value={loc} onChange={e => setLoc(e.target.value)} aria-label="Склад">{st.locations.map(l => <option key={l.id} value={l.id}>{kind === 'move' ? 'Звідки: ' : ''}{l.name}</option>)}</select>
@@ -175,7 +175,7 @@ function OpsForm() {
       </div>
       {kind === 'out' && <div className="body-s muted" style={{ marginTop: 8 }}>Господарські матеріали готелю, МШП у експлуатацію, псування з вини підприємства. Рахунок витрат система не обирає сама.</div>}
     </div>
-    <div className="m-card card-outlined">
+    <div className="card card-outlined">
       <div className="title-m" style={{ marginBottom: 12 }}>Проводки</div>
       {!mv ? <div className="body-m muted">{kind === 'out' && good.length ? 'Оберіть рахунок витрат' : 'Додайте позиції'}</div> : pre?.ok ? <>
         <Postings lines={pre.result.postings} />
@@ -197,7 +197,7 @@ function Cards({ lots }: { lots: ReturnType<typeof ledger>['lots'] }) {
     const set = (f: (c: TechCard) => TechCard) => setEdit(c => c && f(c));
     const ex = explode([...st.cards.filter(c => c.id !== edit.id), edit], [{ card: edit.id, qty: 1 }]);
     const valid = edit.name.trim() && edit.out > 0 && edit.rows.length && edit.rows.every(r => (r.item || r.card) && r.qty > 0) && !ex.error;
-    return <div className="m-card card-outlined">
+    return <div className="card card-outlined">
       <div className="title-m" style={{ marginBottom: 12 }}>{st.cards.some(c => c.id === edit.id) ? 'Техкарта' : 'Нова техкарта'}</div>
       <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr 1fr', gap: 8, marginBottom: 12 }}>
         <input style={inp} placeholder="Назва страви або напівфабрикату" value={edit.name} onChange={e => set(c => ({ ...c, name: e.target.value }))} aria-label="Назва" />

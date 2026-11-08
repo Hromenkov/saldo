@@ -25,13 +25,13 @@ export function Audit() {
       </div>
       {r.findings.length > 0 && <div className="chips" style={{ marginBottom: 12 }}>
         {(['all', ...areas] as const).map(a => (
-          <button key={a} className="m-chip sl" aria-pressed={area === a} onClick={() => setArea(a)}>
+          <button key={a} className="chip sl" aria-pressed={area === a} onClick={() => setArea(a)}>
             {area === a && <Ms>check</Ms>}{a === 'all' ? 'Усі' : AREA_LABEL[a]} <span className="muted">{a === 'all' ? r.findings.length : r.findings.filter(f => f.area === a).length}</span>
           </button>
         ))}
       </div>}
       {list.length ? (
-        <div className="m-card card-outlined" style={{ padding: '8px 0' }}>
+        <div className="card card-outlined" style={{ padding: '8px 0' }}>
           <ul className="list">{list.map((f, i) => {
             const d = docOf(f.docId);
             return (

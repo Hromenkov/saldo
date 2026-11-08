@@ -25,7 +25,7 @@ export function Main() {
   useLayoutEffect(() => {
     const main = ref.current;
     if (!main || reduceMotion()) return;
-    main.querySelectorAll<HTMLElement>('.page-head, .banner, .card, .tabs, h1').forEach((el, i) => {
+    main.querySelectorAll<HTMLElement>('.page-head, .banner, .card, .frame, .tabs, h1').forEach((el, i) => {
       el.classList.remove('enter-anim'); void el.offsetWidth;
       el.style.animationDelay = Math.min(i * 45, 450) + 'ms'; el.classList.add('enter-anim');
       el.addEventListener('animationend', () => { el.classList.remove('enter-anim'); el.style.animationDelay = ''; }, { once: true });

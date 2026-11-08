@@ -50,7 +50,7 @@ export function Vat() {
         <StatCard ic="block" t="Зупинені вхідні ПН" v={String(blocked.length)} d={blocked.length ? `ПК ${fmt(blocked.reduce((s, x) => s + x.vat, 0))} ₴ лишається на 6441` : 'немає'} />
         <StatCard ic="payments" t="До сплати за декларацією" v={fmt0(decl.toPay) + ' ₴'} d="чернетка · ряд. 18" />
       </div>
-      <div className="m-tabs" role="tablist">{tabs.map(([k, l, n]) => (
+      <div className="tabs" role="tablist">{tabs.map(([k, l, n]) => (
         <button key={k} className="tab" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l} {n !== '' && <span className="muted">{n}</span>}</button>
       ))}</div>
 
@@ -90,7 +90,7 @@ export function Vat() {
       </>}
 
       {tab === 'sea' && <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(min(100%,420px),1fr))' }}>
-        <div className="m-card card-outlined">
+        <div className="card card-outlined">
           <div className="title-m">Ліміт реєстрації ПН (п. 200-1.3 ПКУ)</div>
           <table className="dt compact" style={{ marginTop: 8 }}><tbody>
             {([['+', 'Отримані зареєстровані ПН і РК', SEA.received], ['+', 'ПДВ, сплачений на митниці', SEA.customs], ['+', 'Поповнення з поточного рахунку', SEA.topUps], ['+', 'Овердрафт (середній сплачений ПДВ за 12 міс.)', SEA.overdraft],
@@ -99,7 +99,7 @@ export function Vat() {
             <tr><td></td><td className="title-s">Ліміт</td><td className="r title-s">{fmt(limit)}</td></tr>
           </tbody></table>
         </div>
-        <div className="m-card card-outlined">
+        <div className="card card-outlined">
           <div className="title-m">Електронний рахунок ПДВ · субрахунок 315</div>
           <div className="body-m" style={{ margin: '8px 0 12px' }}>Залишок коштів: <b>{fmt(SEA.balance)} ₴</b>. ПДВ до бюджету сплачується лише з цього рахунку, напряму з поточного не можна.</div>
           <ul className="body-s" style={{ margin: 0, paddingLeft: 18, lineHeight: '22px' }}>
