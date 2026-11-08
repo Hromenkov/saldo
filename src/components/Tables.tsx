@@ -49,9 +49,9 @@ function ChartSvg({ add, W }: { add: number; W: number }) {
     <svg className="chart" width={W} height={H} viewBox={`0 0 ${W} ${H}`} role="img" aria-label={`Залишок коштів з 1 по 17 листопада, від ${pts[0]} до ${pts[last]} тисяч гривень`}>
       {ticks.map(t => <g key={t}><line className="grid-l" x1={pl} x2={W - pr} y1={y(t)} y2={y(t)} /><text className="axis" x={pl - 8} y={y(t) + 4} textAnchor="end">{t}к</text></g>)}
       {days.map(([i, l]) => <text key={l} className="axis" x={x(i)} y={H - 8} textAnchor="middle">{l}</text>)}
-      <path d={area} fill="#0B57D0" fillOpacity=".08" />
-      <path d={line} fill="none" stroke="#0B57D0" strokeWidth="2.5" strokeLinejoin="round" strokeLinecap="round" />
-      <circle cx={x(last)} cy={y(pts[last])} r="5" fill="#0B57D0" stroke="#fff" strokeWidth="2" />
+      <path d={area} style={{ fill: "var(--chart-line)" }} fillOpacity=".06" />
+      <path d={line} fill="none" style={{ stroke: "var(--chart-line)" }} strokeWidth="1.75" strokeLinejoin="round" strokeLinecap="round" />
+      <circle cx={x(last)} cy={y(pts[last])} r="4" style={{ fill: "var(--chart-line)", stroke: "var(--card)" }} strokeWidth="2" />
     </svg>
   );
 }

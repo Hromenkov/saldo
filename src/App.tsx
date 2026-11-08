@@ -17,14 +17,21 @@ const useWide = () => {
 };
 
 function Drawer() {
-  const { s, upd, go, openDialog } = useApp();
+  const { s, upd, go, snack } = useApp();
   const total = 51, done = s.docs.filter(d => d.st === 'ok').length + 43;
   const pct = Math.round(done / total * 100);
   const setRole = (r: 'owner' | 'acc') => { upd(d => { d.role = r; }); go(r === 'owner' ? 'overview' : 'docs'); };
   const meta = s.biz ? `${s.biz.b.t} · ${s.biz.group}` : 'Кав’ярня · ТОВ, загальна система';
   return (
     <nav className={cx('drawer', s.drawerOpen && 'open')} id="drawer" aria-label="Навігація">
-      <button className="fab" id="uploadBtn" onClick={() => openDialog({ kind: 'upload' })}><Ms>add</Ms>Завантажити</button>
+      <div className="brand"><span className="brand-mark">С</span><span className="word">Сальдо</span>
+        <button className="icon-btn sl" aria-label="Сповіщення"><Ms>notifications</Ms></button></div>
+      <label className="search" aria-label="Пошук">
+        <Ms>search</Ms>
+        <input type="search" id="q" placeholder="Пошук..."
+          onKeyDown={e => { const v = e.currentTarget.value.trim(); if (e.key === 'Enter' && v) snack(`Пошук «${v}»: знайдено 3 документи і 2 операції`); }} />
+        <span className="kbd">/</span>
+      </label>
       <button className="company sl" onClick={() => upd(d => { d.onbOpen = true; })}>
         <span className="ic">ТП</span>
         <span className="t"><div className="title-s">ТОВ «Приклад»</div><div className="body-s muted" id="compMeta">{meta}</div></span>
@@ -34,6 +41,7 @@ function Drawer() {
         <button id="roleOwner" aria-pressed={s.role === 'owner'} onClick={() => setRole('owner')}><Ms>check</Ms>Власник</button>
         <button id="roleAcc" aria-pressed={s.role === 'acc'} onClick={() => setRole('acc')}><Ms>check</Ms>Бухгалтер</button>
       </div>
+      <div className="nav-group">Робочий простір</div>
       <div id="navItems">
         {NAV[s.role].map(([k, ic, label, badge]) => (
           <button key={k} className="nav-item sl" data-view={k} aria-current={s.view === k ? 'page' : undefined} onClick={() => go(k as View)}>
@@ -42,46 +50,51 @@ function Drawer() {
         ))}
       </div>
       <div className="drawer-foot">
-        <div className="label-m muted">ЛИСТОПАД 2026</div>
-        <div className="storage"><span id="monthBar" style={{ width: pct + '%' }} /></div>
-        <div className="body-s muted" id="monthTxt">Місяць оброблено на {pct}%</div>
+        <div className="month-frame">
+          <div className="hd">Листопад 2026</div>
+          <div className="bd">
+            <div className="body-s muted" id="monthTxt">Місяць оброблено на {pct}%. Закриття до 5 грудня.</div>
+            <div className="storage"><span id="monthBar" style={{ width: pct + '%' }} /></div>
+            <div className="row"><span><b>{pct}%</b>оброблено</span><span><b>{100 - pct}%</b>лишилось</span></div>
+          </div>
+        </div>
+        <div className="user-row"><span className="avatar">А</span><span className="t"><div>Андрій</div><div className="muted">ТОВ «Приклад»</div></span>
+          <button className="icon-btn sl" aria-label="Налаштування"><Ms>more_horiz</Ms></button></div>
       </div>
     </nav>
   );
 }
 
 export default function App() {
-  const { upd, snack } = useApp();
+  const { s, upd, openDialog } = useApp();
   const wide = useWide();
   const [assistOpen, setAssistOpen] = useState(wide);
   // при зміні ширини вікна: на широкому помічник відкритий, на вузькому схований
   useEffect(() => setAssistOpen(wide), [wide]);
   // На широкому екрані помічник займає колонку, на вузькому виїжджає поверх сторінки
   const bodyCls = cx('body', (!wide || assistOpen) && 'with-assist');
+  const page = NAV[s.role].find(n => n[0] === s.view)?.[2] ?? NAV.owner.concat(NAV.acc).find(n => n[0] === s.view)?.[2] ?? '';
 
   return (
     <>
       <div className="app">
-        <header className="topbar">
-          <button className="icon-btn sl menu-btn" id="menuBtn" aria-label="Меню" onClick={() => upd(d => { d.drawerOpen = true; })}><Ms>menu</Ms></button>
-          <div className="brand"><span className="brand-mark">С</span><span className="word"><b>Сальдо</b></span></div>
-          <label className="search" aria-label="Пошук">
-            <button className="icon-btn sl" tabIndex={-1} aria-hidden="true"><Ms>search</Ms></button>
-            <input type="search" id="q" placeholder="Пошук документів, контрагентів, операцій"
-              onKeyDown={e => { const v = e.currentTarget.value.trim(); if (e.key === 'Enter' && v) snack(`Пошук «${v}»: знайдено 3 документи і 2 операції`); }} />
-            <button className="icon-btn sl" aria-label="Фільтри"><Ms>tune</Ms></button>
-          </label>
-          <div className="top-actions">
-            <button className="icon-btn sl" id="assistBtn" aria-label="Помічник" aria-pressed={assistOpen} title="Помічник" onClick={() => setAssistOpen(o => !o)}><Ms>forum</Ms></button>
-            <button className="icon-btn sl hide-sm" aria-label="Довідка"><Ms>help</Ms></button>
-            <button className="icon-btn sl hide-sm" aria-label="Налаштування"><Ms>settings</Ms></button>
-            <span className="avatar" title="Андрій">А</span>
+        <Drawer />
+        <div className="main-col">
+          <header className="topbar">
+            <button className="icon-btn sl menu-btn" id="menuBtn" aria-label="Меню" onClick={() => upd(d => { d.drawerOpen = true; })}><Ms>menu</Ms></button>
+            <nav className="crumbs" aria-label="Де ви">
+              <span className="co"><i />ТОВ «Приклад»</span><Ms className="sep">chevron_right</Ms><span className="cur">{page}</span>
+            </nav>
+            <div className="top-actions">
+              {s.view !== 'docs' && <button className="btn btn-filled sl" id="uploadBtn" onClick={() => openDialog({ kind: 'upload' })}><Ms>add</Ms><span className="lbl">Завантажити</span></button>}
+              <button className="icon-btn sl" id="assistBtn" aria-label="Помічник" aria-pressed={assistOpen} title="Помічник" onClick={() => setAssistOpen(o => !o)}><Ms>forum</Ms></button>
+              <button className="icon-btn sl hide-sm" aria-label="Довідка"><Ms>help</Ms></button>
+            </div>
+          </header>
+          <div className={bodyCls}>
+            <Main />
+            <Assistant open={assistOpen} wide={wide} onClose={() => setAssistOpen(false)} />
           </div>
-        </header>
-        <div className={bodyCls}>
-          <Drawer />
-          <Main />
-          <Assistant open={assistOpen} wide={wide} onClose={() => setAssistOpen(false)} />
         </div>
       </div>
       <Onboarding />

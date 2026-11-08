@@ -34,12 +34,11 @@ function PeriodMenu() {
   );
 }
 
-export function StatCard({ ic, t, v, d, outlined }: { ic: string; t: string; v: string; d: React.ReactNode; outlined?: boolean }) {
+export function StatCard({ ic, t, v, d, meta }: { ic: string; t: string; v: string; d: React.ReactNode; outlined?: boolean; meta?: string }) {
   return (
-    <div className={'card stat ' + (outlined ? 'card-outlined' : 'card-filled')}>
-      <div className="top"><Ms>{ic}</Ms><span className="title-s">{t}</span></div>
-      <StatValue v={v} />
-      <div className="d body-s">{d}</div>
+    <div className="frame stat-frame">
+      <div className="frame-hd"><Ms>{ic}</Ms><span className="t">{t}</span>{meta && <span className="meta">{meta}</span>}</div>
+      <div className="frame-bd"><div className="stat-v"><StatValue v={v} /></div><div className="d">{d}</div></div>
     </div>
   );
 }
@@ -92,13 +91,14 @@ export function Overview() {
       {/* у власника замість демо-показників — «Пульс», порахований з документів і банку */}
       {s.role !== 'owner' && <div className="grid g4">{cards.map(([ic, t, v, d]) => <StatCard key={t} ic={ic} t={t} v={v} d={d} />)}</div>}
       <div className="grid g2" style={{ marginTop: 12 }}>
-        <div className="card card-outlined">
-          <div className="section-title" style={{ margin: '0 0 8px' }}><span className="title-m">{m ? 'Усі гроші, листопад' : 'Грошові кошти (301, 311), листопад'}</span><button className="icon-btn sl" aria-label="Більше"><Ms>more_vert</Ms></button></div>
-          <Chart key={s.mode} add={m ? 54 : 0} />
+        <div className="frame">
+          <div className="frame-hd"><Ms>show_chart</Ms><span className="t">{m ? 'Усі гроші, листопад' : 'Грошові кошти (301, 311), листопад'}</span><span className="meta">17 днів</span></div>
+          <div className="frame-bd"><Chart key={s.mode} add={m ? 54 : 0} /></div>
+          <button className="frame-ft" onClick={() => go('bank')}><span>Відкрити банк і каси</span><Ms>arrow_forward</Ms></button>
         </div>
-        <div className="card card-outlined" style={{ padding: '8px 0' }}>
-          <div className="section-title" style={{ margin: '8px 16px' }}><span className="title-m">Що треба зробити</span></div>
-          <ul className="list">
+        <div className="frame">
+          <div className="frame-hd"><Ms>checklist</Ms><span className="t">Що треба зробити</span><span className="meta">{due.length + 2} задачі</span></div>
+          <div className="frame-bd flush"><ul className="list">
             {due.map(r => (
               <li className="li" key={r.name + r.per}><span className="lead blue"><Ms>draw</Ms></span>
                 <span className="txt"><div className="title-s">{r.name}</div><div className="s body-s">{r.per} · до {r.due}</div></span>
@@ -106,7 +106,8 @@ export function Overview() {
             ))}
             <li className="li"><span className="lead yellow"><Ms>payments</Ms></span><span className="txt"><div className="title-s">Сплатити ЄСВ і ПДФО</div><div className="s body-s">9 440,00 ₴ · платіжки готові</div></span><span className="trail"><button className="btn btn-text sl" onClick={() => snack('Платіжки надіслано в ПриватБанк на підпис')}>Оплатити</button></span></li>
             <li className="li"><span className="lead"><Ms>handshake</Ms></span><span className="txt"><div className="title-s">3 акти звірки без підпису</div><div className="s body-s">Агроресурс, Логістик-Захід, Енергозбут</div></span><span className="trail"><button className="btn btn-text sl" onClick={() => snack('Нагадування надіслано контрагентам')}>Нагадати</button></span></li>
-          </ul>
+          </ul></div>
+          <button className="frame-ft" onClick={() => go('reports')}><span>Уся звітність</span><Ms>arrow_forward</Ms></button>
         </div>
       </div>
       <div className="grid g2eq" style={{ marginTop: 28 }}>

@@ -175,7 +175,7 @@ export function AssetSheet({ id }: { id: string }) {
             <div className="support">{d.expense ? 'Обрано бухгалтером' : 'Система не обирає сама: виробництво 23, цех 91, офіс 92, продаж 93'}</div></div>
           {!locked && <div className="tf"><input id="as-in" type="month" placeholder=" " value={inMonth} onChange={e => setInMonth(e.target.value)} /><label htmlFor="as-in">Місяць введення в експлуатацію</label></div>}
         </div>
-        {issues.length > 0 && st !== 'disposed' && <ul className="checks body-m">{issues.map((i, k) => <li key={k}><Ms style={{ color: i.level === 'error' ? 'var(--md-error)' : '#8A6100' }}>{i.level === 'error' ? 'error' : 'warning'}</Ms>{i.t}</li>)}</ul>}
+        {issues.length > 0 && st !== 'disposed' && <ul className="checks body-m">{issues.map((i, k) => <li key={k}><Ms style={{ color: i.level === 'error' ? 'var(--md-error)' : 'var(--warning)' }}>{i.level === 'error' ? 'error' : 'warning'}</Ms>{i.t}</li>)}</ul>}
         <div><div className="title-s" style={{ marginBottom: 8 }}>Графік амортизації</div><Schedule a={{ ...d, commissioned: locked ? saved.commissioned : inMonth }} /></div>
         {st === 'draft' && <div><div className="title-s" style={{ marginBottom: 8 }}>Проводка введення в експлуатацію</div><Lines lines={commissionLines(d)} /></div>}
         {st === 'service' && <div className="card card-outlined" style={{ display: 'grid', gap: 16 }}>
