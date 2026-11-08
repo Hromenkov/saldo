@@ -72,7 +72,7 @@ export async function recognizeFile(file: File, company: string[], existing: Doc
   r.items.forEach((it, i) => {
     if (it.qty != null && !Number.isInteger(it.qty) && /^шт/i.test(it.unit || '')) checks.push({ ok: false, info: true, t: `Рядок ${i + 1}: дробова кількість ${it.qty} в штуках. Можливо, це кг` });
   });
-  if (r.handwritten) checks.push({ ok: true, t: 'Заповнено від руки: цифри звірено двома читаннями й арифметикою' });
+  if (r.handwritten) checks.push({ ok: true, t: data.passes === 2 ? 'Заповнено від руки: цифри звірено двома читаннями й арифметикою' : 'Заповнено від руки: арифметика й підсумки сходяться' });
   if (r.kind === 'purchase_goods' && r.items.length) {
     const m = r.items.map(it => matchItem(pk, it.name));
     const none = m.filter(x => !x).length, guess = m.filter(x => x && x.how !== 'map').length;
