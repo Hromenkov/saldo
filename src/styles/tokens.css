@@ -39,7 +39,7 @@ body {
   font-family: var(--font); font-size: 14px; line-height: 20px; letter-spacing: .1px;
   -webkit-font-smoothing: antialiased;
 }
-@layer base { button, input, select, textarea { font: inherit; color: inherit; } }
+button, input, select, textarea { font: inherit; color: inherit; }
 .ms {
   font-family: "Material Symbols Outlined"; font-weight: normal; font-style: normal;
   font-size: 24px; line-height: 1; letter-spacing: normal; text-transform: none;

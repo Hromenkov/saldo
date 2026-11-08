@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { NAV, useApp, type View } from './store';
-import { Avatar, Button, Label, ProgressBar, ToggleButton, ToggleButtonGroup } from '@heroui/react';
 import { cx, Ms } from './lib';
 import { Main } from './MainView';
 import { Assistant } from './components/Assistant';
@@ -25,30 +24,26 @@ function Drawer() {
   const meta = s.biz ? `${s.biz.b.t} · ${s.biz.group}` : 'Кав’ярня · ТОВ, загальна система';
   return (
     <nav className={cx('drawer', s.drawerOpen && 'open')} id="drawer" aria-label="Навігація">
-      <Button className="fab-h" id="uploadBtn" size="lg" onPress={() => openDialog({ kind: 'upload' })}><Ms>add</Ms>Завантажити</Button>
+      <button className="fab" id="uploadBtn" onClick={() => openDialog({ kind: 'upload' })}><Ms>add</Ms>Завантажити</button>
       <button className="company sl" onClick={() => upd(d => { d.onbOpen = true; })}>
         <span className="ic">ТП</span>
         <span className="t"><div className="title-s">ТОВ «Приклад»</div><div className="body-s muted" id="compMeta">{meta}</div></span>
         <Ms className="muted">unfold_more</Ms>
       </button>
-      <ToggleButtonGroup className="role-toggle" aria-label="Роль" fullWidth selectionMode="single" disallowEmptySelection
-        selectedKeys={[s.role]} onSelectionChange={k => { const r = [...k][0]; if (r) setRole(r as 'owner' | 'acc'); }}>
-        <ToggleButton id="owner" size="sm">Власник</ToggleButton>
-        <ToggleButton id="acc" size="sm">Бухгалтер</ToggleButton>
-      </ToggleButtonGroup>
+      <div className="segmented block" role="group" aria-label="Роль">
+        <button id="roleOwner" aria-pressed={s.role === 'owner'} onClick={() => setRole('owner')}><Ms>check</Ms>Власник</button>
+        <button id="roleAcc" aria-pressed={s.role === 'acc'} onClick={() => setRole('acc')}><Ms>check</Ms>Бухгалтер</button>
+      </div>
       <div id="navItems">
         {NAV[s.role].map(([k, ic, label, badge]) => (
           <button key={k} className="nav-item sl" data-view={k} aria-current={s.view === k ? 'page' : undefined} onClick={() => go(k as View)}>
-            <Ms>{ic}</Ms>{label}<span className="nav-badge">{badge ? badge(s) : ''}</span>
+            <Ms>{ic}</Ms>{label}<span className="badge">{badge ? badge(s) : ''}</span>
           </button>
         ))}
       </div>
       <div className="drawer-foot">
-        <ProgressBar className="month-progress" value={pct} size="sm" aria-label="Місяць оброблено">
-          <Label className="label-m muted">ЛИСТОПАД 2026</Label>
-          <ProgressBar.Output className="body-s muted" />
-          <ProgressBar.Track><ProgressBar.Fill /></ProgressBar.Track>
-        </ProgressBar>
+        <div className="label-m muted">ЛИСТОПАД 2026</div>
+        <div className="storage"><span id="monthBar" style={{ width: pct + '%' }} /></div>
         <div className="body-s muted" id="monthTxt">Місяць оброблено на {pct}%</div>
       </div>
     </nav>
@@ -68,7 +63,7 @@ export default function App() {
     <>
       <div className="app">
         <header className="topbar">
-          <Button className="menu-btn" isIconOnly variant="ghost" id="menuBtn" aria-label="Меню" onPress={() => upd(d => { d.drawerOpen = true; })}><Ms>menu</Ms></Button>
+          <button className="icon-btn sl menu-btn" id="menuBtn" aria-label="Меню" onClick={() => upd(d => { d.drawerOpen = true; })}><Ms>menu</Ms></button>
           <div className="brand"><span className="brand-mark">С</span><span className="word"><b>Сальдо</b></span></div>
           <label className="search" aria-label="Пошук">
             <button className="icon-btn sl" tabIndex={-1} aria-hidden="true"><Ms>search</Ms></button>
@@ -77,10 +72,10 @@ export default function App() {
             <button className="icon-btn sl" aria-label="Фільтри"><Ms>tune</Ms></button>
           </label>
           <div className="top-actions">
-            <ToggleButton isIconOnly variant="ghost" id="assistBtn" aria-label="Помічник" isSelected={assistOpen} onChange={setAssistOpen}><Ms>forum</Ms></ToggleButton>
-            <Button className="hide-sm" isIconOnly variant="ghost" aria-label="Довідка"><Ms>help</Ms></Button>
-            <Button className="hide-sm" isIconOnly variant="ghost" aria-label="Налаштування"><Ms>settings</Ms></Button>
-            <Avatar className="top-avatar" size="sm" color="success" title="Андрій"><Avatar.Fallback>А</Avatar.Fallback></Avatar>
+            <button className="icon-btn sl" id="assistBtn" aria-label="Помічник" aria-pressed={assistOpen} title="Помічник" onClick={() => setAssistOpen(o => !o)}><Ms>forum</Ms></button>
+            <button className="icon-btn sl hide-sm" aria-label="Довідка"><Ms>help</Ms></button>
+            <button className="icon-btn sl hide-sm" aria-label="Налаштування"><Ms>settings</Ms></button>
+            <span className="avatar" title="Андрій">А</span>
           </div>
         </header>
         <div className={bodyCls}>

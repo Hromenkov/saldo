@@ -1,4 +1,4 @@
-import { Alert, Button, Card, Dropdown, Label, Tabs } from '@heroui/react';
+import { useEffect, useRef, useState } from 'react';
 import { ACCOUNTS } from '../data';
 import { useApp } from '../store';
 import { fmt, fmt0, Ms } from '../lib';
@@ -11,28 +11,36 @@ const PERIODS = ['Листопад 2026', 'Жовтень 2026', 'IV кварт�
 
 function PeriodMenu() {
   const { s, upd } = useApp();
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!open) return;
+    const close = (e: MouseEvent) => { if (!ref.current?.contains(e.target as Node)) setOpen(false); };
+    document.addEventListener('click', close); return () => document.removeEventListener('click', close);
+  }, [open]);
   return (
-    <Dropdown>
-      <Button variant="secondary" aria-label="Період"><Ms>calendar_month</Ms>{s.period}<Ms>arrow_drop_down</Ms></Button>
-      <Dropdown.Popover placement="bottom end">
-        <Dropdown.Menu aria-label="Період" selectionMode="single" selectedKeys={[s.period]}
-          onSelectionChange={k => { const x = [...(k === 'all' ? [] : k)][0]; if (x) upd(d => { d.period = String(x); }); }}>
-          {PERIODS.map(x => (
-            <Dropdown.Item key={x} id={x} textValue={x}><Dropdown.ItemIndicator /><Label>{x}</Label></Dropdown.Item>
-          ))}
-        </Dropdown.Menu>
-      </Dropdown.Popover>
-    </Dropdown>
+    <div className="menu-anchor" ref={ref}>
+      <button className="btn btn-outlined sl" aria-haspopup="menu" onClick={() => setOpen(o => !o)}>
+        <Ms>calendar_month</Ms>{s.period}<Ms style={{ margin: '0 -12px 0 0' }}>arrow_drop_down</Ms>
+      </button>
+      <div className="menu" id="periodMenu" role="menu" hidden={!open}>
+        {PERIODS.map(x => (
+          <button key={x} role="menuitemradio" aria-checked={x === s.period} className="sl" onClick={() => { upd(d => { d.period = x; }); setOpen(false); }}>
+            <Ms>{x === s.period ? 'check' : ''}</Ms>{x}
+          </button>
+        ))}
+      </div>
+    </div>
   );
 }
 
 export function StatCard({ ic, t, v, d, outlined }: { ic: string; t: string; v: string; d: React.ReactNode; outlined?: boolean }) {
   return (
-    <Card className={'h-card stat' + (outlined ? ' h-card-outlined' : '')}>
+    <div className={'card stat ' + (outlined ? 'card-outlined' : 'card-filled')}>
       <div className="top"><Ms>{ic}</Ms><span className="title-s">{t}</span></div>
       <StatValue v={v} />
       <div className="d body-s">{d}</div>
-    </Card>
+    </div>
   );
 }
 
@@ -54,6 +62,7 @@ export function Overview() {
     ['receipt_long', 'Розрахунки з бюджетом', '31 840 ₴', 'рахунки 641, 651 · ПДВ, ЄСВ, ПДФО']
   ];
   const setMode = (mode: 'mgmt' | 'acc') => upd(d => { d.mode = mode; });
+  const tabIc = { verticalAlign: -4, marginRight: 6 };
   const au = audit(s.docs, s.bank, { today: asOf() });
 
   return (
@@ -63,48 +72,42 @@ export function Overview() {
         <span className="spacer" />
         <PeriodMenu />
       </div>
-      <Tabs className="mode-tabs" variant="secondary" selectedKey={s.mode} onSelectionChange={k => setMode(k as 'mgmt' | 'acc')}>
-        <Tabs.ListContainer>
-          <Tabs.List aria-label="Вид обліку">
-            <Tabs.Tab id="mgmt"><Ms className="sm">insights</Ms>Управлінський облік<Tabs.Indicator /></Tabs.Tab>
-            <Tabs.Tab id="acc"><Ms className="sm">account_tree</Ms>Бухгалтерський облік<Tabs.Indicator /></Tabs.Tab>
-          </Tabs.List>
-        </Tabs.ListContainer>
-      </Tabs>
+      <div className="tabs" role="tablist" aria-label="Вид обліку">
+        <button className="tab" role="tab" aria-selected={m} onClick={() => setMode('mgmt')}><Ms className="sm" style={tabIc}>insights</Ms>Управлінський облік</button>
+        <button className="tab" role="tab" aria-selected={!m} onClick={() => setMode('acc')}><Ms className="sm" style={tabIc}>account_tree</Ms>Бухгалтерський облік</button>
+      </div>
       {s.questions.length > 0 && (
-        <Alert className="h-banner" status="accent">
-          <Alert.Indicator><Ms className="fill">contact_support</Ms></Alert.Indicator>
-          <Alert.Content><Alert.Title>{s.questions.length} питання чекають на вашу відповідь</Alert.Title><Alert.Description>Без них система не може провести частину документів.</Alert.Description></Alert.Content>
-          <Button onPress={() => go('questions')}>Відповісти</Button>
-        </Alert>
+        <div className="banner"><span className="ms fill">contact_support</span>
+          <div className="txt"><div className="title-s">{s.questions.length} питання чекають на вашу відповідь</div><div className="body-m">Без них система не може провести частину документів.</div></div>
+          <button className="btn btn-filled sl" onClick={() => go('questions')}>Відповісти</button>
+        </div>
       )}
       {s.role === 'owner' && <Pulse />}
       {au.errors > 0 && s.role !== 'owner' && (
-        <Alert className="h-banner" status="danger">
-          <Alert.Indicator><Ms className="fill">fact_check</Ms></Alert.Indicator>
-          <Alert.Content><Alert.Title>Аудит знайшов {au.errors} {au.errors === 1 ? 'помилку' : au.errors < 5 ? 'помилки' : 'помилок'} на {money(au.atStake)} ₴</Alert.Title><Alert.Description>Перевірено {au.checked} документів до копійки: суми, ПДВ, проводки, дублікати, оплати.</Alert.Description></Alert.Content>
-          <Button variant="danger" onPress={() => go('audit')}>Подивитися</Button>
-        </Alert>
+        <div className="banner"><span className="ms fill">fact_check</span>
+          <div className="txt"><div className="title-s">Аудит знайшов {au.errors} {au.errors === 1 ? 'помилку' : au.errors < 5 ? 'помилки' : 'помилок'} на {money(au.atStake)} ₴</div><div className="body-m">Перевірено {au.checked} документів до копійки: суми, ПДВ, проводки, дублікати, оплати.</div></div>
+          <button className="btn btn-filled sl" onClick={() => go('audit')}>Подивитися</button>
+        </div>
       )}
       {/* у власника замість демо-показників — «Пульс», порахований з документів і банку */}
       {s.role !== 'owner' && <div className="grid g4">{cards.map(([ic, t, v, d]) => <StatCard key={t} ic={ic} t={t} v={v} d={d} />)}</div>}
       <div className="grid g2" style={{ marginTop: 12 }}>
-        <Card className="h-card">
-          <Card.Header className="h-card-head"><Card.Title className="title-m">{m ? 'Усі гроші, листопад' : 'Грошові кошти (301, 311), листопад'}</Card.Title><Button isIconOnly variant="ghost" size="sm" aria-label="Більше"><Ms>more_vert</Ms></Button></Card.Header>
+        <div className="card card-outlined">
+          <div className="section-title" style={{ margin: '0 0 8px' }}><span className="title-m">{m ? 'Усі гроші, листопад' : 'Грошові кошти (301, 311), листопад'}</span><button className="icon-btn sl" aria-label="Більше"><Ms>more_vert</Ms></button></div>
           <Chart key={s.mode} add={m ? 54 : 0} />
-        </Card>
-        <Card className="h-card h-card-list">
-          <Card.Header className="h-card-head"><Card.Title className="title-m">Що треба зробити</Card.Title></Card.Header>
+        </div>
+        <div className="card card-outlined" style={{ padding: '8px 0' }}>
+          <div className="section-title" style={{ margin: '8px 16px' }}><span className="title-m">Що треба зробити</span></div>
           <ul className="list">
             {due.map(r => (
               <li className="li" key={r.name + r.per}><span className="lead blue"><Ms>draw</Ms></span>
                 <span className="txt"><div className="title-s">{r.name}</div><div className="s body-s">{r.per} · до {r.due}</div></span>
-                <span className="trail"><Button size="sm" variant="tertiary" onPress={() => openDialog({ kind: 'sign', name: r.name, per: r.per })}>Підписати</Button></span></li>
+                <span className="trail"><button className="btn btn-text sl" onClick={() => openDialog({ kind: 'sign', name: r.name, per: r.per })}>Підписати</button></span></li>
             ))}
-            <li className="li"><span className="lead yellow"><Ms>payments</Ms></span><span className="txt"><div className="title-s">Сплатити ЄСВ і ПДФО</div><div className="s body-s">9 440,00 ₴ · платіжки готові</div></span><span className="trail"><Button size="sm" variant="tertiary" onPress={() => snack('Платіжки надіслано в ПриватБанк на підпис')}>Оплатити</Button></span></li>
-            <li className="li"><span className="lead"><Ms>handshake</Ms></span><span className="txt"><div className="title-s">3 акти звірки без підпису</div><div className="s body-s">Агроресурс, Логістик-Захід, Енергозбут</div></span><span className="trail"><Button size="sm" variant="tertiary" onPress={() => snack('Нагадування надіслано контрагентам')}>Нагадати</Button></span></li>
+            <li className="li"><span className="lead yellow"><Ms>payments</Ms></span><span className="txt"><div className="title-s">Сплатити ЄСВ і ПДФО</div><div className="s body-s">9 440,00 ₴ · платіжки готові</div></span><span className="trail"><button className="btn btn-text sl" onClick={() => snack('Платіжки надіслано в ПриватБанк на підпис')}>Оплатити</button></span></li>
+            <li className="li"><span className="lead"><Ms>handshake</Ms></span><span className="txt"><div className="title-s">3 акти звірки без підпису</div><div className="s body-s">Агроресурс, Логістик-Захід, Енергозбут</div></span><span className="trail"><button className="btn btn-text sl" onClick={() => snack('Нагадування надіслано контрагентам')}>Нагадати</button></span></li>
           </ul>
-        </Card>
+        </div>
       </div>
       <div className="grid g2eq" style={{ marginTop: 28 }}>
         <div>
@@ -120,7 +123,7 @@ export function Overview() {
           </table></div>
         </div>
         <div>
-          <div className="section-title" style={{ marginTop: 0 }}><span className="title-m">Останні операції</span><Button size="sm" variant="ghost" onPress={() => go('bank')}>Усі операції</Button></div>
+          <div className="section-title" style={{ marginTop: 0 }}><span className="title-m">Останні операції</span><button className="btn btn-text sl" onClick={() => go('bank')} style={{ height: 32 }}>Усі операції</button></div>
           <BankTable rows={s.bank.slice(-5).reverse()} compact />
         </div>
       </div>

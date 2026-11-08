@@ -12,7 +12,7 @@
 .bubble .time { font-size: 11px; color: var(--md-on-surface-variant); align-self: flex-end; margin-top: -4px; }
 .bubble .acts { display: flex; flex-wrap: wrap; gap: 8px; }
 .bubble .acts .btn { height: 36px; padding: 0 16px; }
-.bubble .acts .m-chip { background: var(--md-surface-container-lowest); }
+.bubble .acts .chip { background: var(--md-surface-container-lowest); }
 .bubble .acts.done { opacity: .5; pointer-events: none; }
 .mini { background: var(--md-surface-container-lowest); border-radius: 12px; padding: 12px 14px; display: grid; gap: 6px; font-size: 14px; }
 .mini .row { display: flex; justify-content: space-between; gap: 16px; }

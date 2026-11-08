@@ -29,9 +29,7 @@
 
 **Демо-данные** (`src/data/`, импортировать из `'../data'`): `docs.ts` документы, банк, вопросы, отчёты, закрытие, ОЗ, ОСВ · `onboarding.ts` типы бизнеса, формы, каталоги подключений · `ops.ts` каталог типовых операций · `structure.ts` структура, история, типы изменений.
 
-**Стили** (`src/styles/`, порядок задан в `index.css`): `heroui` подключение HeroUI v3 и Tailwind v4 (без preflight, `source(none)`; новые компоненты HeroUI добавлять в список импортов) и тема Сальдо · `tokens` токены и кнопки · `shell` каркас · `components` карточки, списки, чипы, таблицы, поля, панель, диалог · `onboarding` · `assistant` · `theme` мягкая тема · `pulse` · `heroui-saldo` подгонка компонентов HeroUI.
-
-**HeroUI v3** (`@heroui/react`): идёт поэтапный переход. Уже на HeroUI: каркас (`App.tsx`), «Огляд», `StatCard`. Наши классы, совпадавшие с HeroUI, переименованы: `m-card`, `m-chip`, `m-tabs`, `m-menu`. Кнопки HeroUI используют `onPress`, не `onClick`.
+**Стили** (`src/styles/`, порядок задан в `index.css`): `tokens` токены и кнопки · `shell` каркас · `components` карточки, списки, чипы, таблицы, поля, панель, диалог · `onboarding` · `assistant` · `theme` мягкая тема · `pulse`.
 
 **Логика (без UI):**
 - `src/recognize/` — распознавание документов: `schema` поля, `client` вызов API, `checks` проверки, `chart` план счетов и корреспонденции, `accounts` список счетов, `rules` правила по контрагенту, `nomenclature` справочник, `basis` подстава и статьи ДДС, `settlements` взаиморасчёты, `suppliers`/`companies`/`registry` реестры, `cost`/`escalate` стоимость и второе чтение.

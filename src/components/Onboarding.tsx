@@ -58,12 +58,12 @@ export function Onboarding() {
   );
   const multi = (key: MultiKey, opts: string[]) => (
     <div className="chips">{opts.map(o => { const on = ob[key].includes(o); return (
-      <button key={o} className="m-chip sl" aria-pressed={on} onClick={() => set(d => { d[key] = on ? d[key].filter(x => x !== o) : [...d[key], o]; })}>{on && <Ms>check</Ms>}{o}</button>
+      <button key={o} className="chip sl" aria-pressed={on} onClick={() => set(d => { d[key] = on ? d[key].filter(x => x !== o) : [...d[key], o]; })}>{on && <Ms>check</Ms>}{o}</button>
     ); })}</div>
   );
   const single = (key: SingleKey, opts: string[]) => (
     <div className="chips" role="radiogroup">{opts.map(o => { const on = ob[key] === o; return (
-      <button key={o} className="m-chip sl" role="radio" aria-checked={on} aria-pressed={on} onClick={() => set(d => { d[key] = o; })}>{on && <Ms>check</Ms>}{o}</button>
+      <button key={o} className="chip sl" role="radio" aria-checked={on} aria-pressed={on} onClick={() => set(d => { d[key] = o; })}>{on && <Ms>check</Ms>}{o}</button>
     ); })}</div>
   );
   const cnt = (key: CountKey, ic: string, t: string, sub: string) => (
@@ -123,7 +123,7 @@ export function Onboarding() {
                   <div className="body-s muted" style={{ marginTop: 8 }}>{fm ? fm.s : ''}{fop ? ' · книга обліку доходів, контроль ліміту єдиного податку' : ' · план рахунків, подвійний запис'}</div>
                   <div style={{ marginTop: 10 }}><div className="chips" role="radiogroup">{FORMS.filter(x => x.fop === fop).map(x => {
                     const on = e.form === x.k;
-                    return <button key={x.k} className="m-chip sl" role="radio" aria-checked={on} aria-pressed={on} onClick={() => set(d => { d.entities[i].form = x.k; })}>{on && <Ms>check</Ms>}{x.t}</button>;
+                    return <button key={x.k} className="chip sl" role="radio" aria-checked={on} aria-pressed={on} onClick={() => set(d => { d.entities[i].form = x.k; })}>{on && <Ms>check</Ms>}{x.t}</button>;
                   })}</div></div>
                 </span>
                 {!e.main && <button className="icon-btn sl" aria-label="Видалити" onClick={() => set(d => { d.entities.splice(i, 1); })}><Ms>delete</Ms></button>}

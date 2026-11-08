@@ -10,9 +10,9 @@ body { background: var(--app-bg); }
 .main { background: var(--main-bg); }
 .search { background: rgba(255,255,255,.65); }
 .card-filled, .card-outlined { background: #fff; border: 1px solid rgba(16,32,64,.06); box-shadow: var(--card-shadow); }
-.m-card { transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
-.m-card:hover { box-shadow: var(--card-shadow-hover); }
-.m-card.stat:hover { transform: translateY(-2px); }
+.card { transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+.card:hover { box-shadow: var(--card-shadow-hover); }
+.card.stat:hover { transform: translateY(-2px); }
 .stat .top .ms { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 19px; background: #E8F0FE; color: var(--md-primary); }
 .g4 > .stat:nth-child(1) { background: linear-gradient(160deg, #EEF4FF 0%, #fff 55%); }
 .g4 > .stat:nth-child(2) { background: linear-gradient(160deg, #ECF8F1 0%, #fff 55%); }
@@ -46,7 +46,7 @@ body { background: var(--app-bg); }
 .assist.open, .body.with-assist .assist { animation: none; }
 @media (prefers-reduced-motion: reduce) {
   .enter-anim, .msg.new { animation: none; }
-  .m-card, .m-card.stat:hover { transition: none; transform: none; }
+  .card, .card.stat:hover { transition: none; transform: none; }
 }
 
 /* React: корінь застосунку не повинен ламати ланцюжок висот */
