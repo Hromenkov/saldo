@@ -2,7 +2,7 @@
 
 Чтобы экономить контекст: **читайте только нужный модуль**, не весь `src/` и не `README.md` целиком (README — справка по бухгалтерской логике, искать в нём через grep).
 
-**Не читать:** `public/legacy/index.html` (старый прототип одним файлом, 150 КБ, не используется), `public/landing/index.html` (лендинг, только если задача про лендинг), `package-lock.json`, `tests/fixtures/*.png`, `dist/`.
+**Не читать:** `public/landing/index.html` (лендинг, только если задача про лендинг), `package-lock.json`, `tests/fixtures/*.png`, `dist/`.
 
 ## Сборка и проверки
 
