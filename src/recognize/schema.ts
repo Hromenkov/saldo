@@ -72,5 +72,11 @@ export function fromWire(w: RecognizedWire): Recognized {
 }
 
 export type RecognizeRequest = { name: string; mime: string; data: string; company: string };
-/** passes — скільки незалежних читань зроблено (для фото два), diff — поля, де вони розійшлися. */
-export type RecognizeResponse = { ok: true; result: Recognized; model: string; passes?: number; diff?: string[] } | { ok: false; error: string };
+/**
+ * passes — скільки читань зроблено (друге лише якщо перше не пройшло перевірок), diff — поля, де читання розійшлися.
+ * route — як документ відсортовано (printed читає дешевша модель), cost — собівартість розпізнавання,
+ * reread — чому знадобилося друге читання.
+ */
+export type RecognizeResponse =
+  | { ok: true; result: Recognized; model: string; passes?: number; diff?: string[]; route?: 'printed' | 'handwritten'; cost?: { usd: number; uah: number }; reread?: string[] }
+  | { ok: false; error: string };

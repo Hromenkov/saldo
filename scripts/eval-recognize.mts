@@ -7,7 +7,7 @@ import handler from '../netlify/functions/recognize.mts';
 
 if (!process.env.ANTHROPIC_API_KEY) { console.log('Немає ANTHROPIC_API_KEY: еталонний прогін пропущено'); process.exit(0); }
 const dir = 'tests/fixtures';
-let pass = 0, total = 0;
+let pass = 0, total = 0, usd = 0;
 for (const f of readdirSync(dir).filter(x => x.endsWith('.json'))) {
   const fx = JSON.parse(readFileSync(join(dir, f), 'utf8'));
   const data = readFileSync(join(dir, fx.file)).toString('base64');
@@ -33,7 +33,9 @@ for (const f of readdirSync(dir).filter(x => x.endsWith('.json'))) {
     });
   }
   total++; if (!fails.length) pass++;
-  console.log(`${fails.length ? '✗' : '✓'} ${fx.file}${fails.length ? ': ' + fails.join('; ') : ''}${out.diff?.length ? ` (розбіжності читань: ${out.diff.join(', ')})` : ''}`);
+  usd += out.cost?.usd ?? 0;
+  const how = out.ok ? ` [${out.route}, читань ${out.passes}, ${out.cost?.uah ?? '?'} грн${out.reread ? '; друге читання: ' + out.reread.join('; ') : ''}]` : '';
+  console.log(`${fails.length ? '✗' : '✓'} ${fx.file}${how}${fails.length ? ': ' + fails.join('; ') : ''}${out.diff?.length ? ` (розбіжності читань: ${out.diff.join(', ')})` : ''}`);
 }
-console.log(`\n${pass} з ${total}`);
+console.log(`\n${pass} з ${total}; собівартість ${usd.toFixed(3)} $ (${(usd * 42 / Math.max(1, total)).toFixed(2)} грн за документ)`);
 process.exit(pass === total ? 0 : 1);

@@ -4,8 +4,25 @@ import Anthropic from '@anthropic-ai/sdk';
 import { betaZodOutputFormat } from '@anthropic-ai/sdk/helpers/beta/zod';
 import { RecognizedWire, fromWire, type RecognizeRequest, type RecognizeResponse } from '../../src/recognize/schema';
 import { reconcile } from '../../src/recognize/reconcile';
+// Схема витрат: дешева модель спершу сортує документ (друкований чи рукописний), друковані читає Sonnet,
+// рукописні й погані фото — Opus, обидва на effort medium. Друге читання (Opus, effort high) лише тоді,
+// коли перше не пройшло перевірок кодом: арифметика, сумнів у ключових полях, низька впевненість.
+// Кожне розпізнавання пише в лог рядок recognize_cost з токенами й собівартістю.
+import { z } from 'zod';
+import { callCost, total, type Call } from '../../src/recognize/cost';
+import { rereadReasons } from '../../src/recognize/escalate';
 
-const MODEL = 'claude-opus-5-5';
+const OPUS = 'claude-opus-5-5';
+const SONNET = 'claude-sonnet-5-5';
+const HAIKU = 'claude-haiku-5-5';
+/** Скільки часу є на все розпізнавання (ліміт функції Netlify — хвилина). */
+const BUDGET_MS = 55_000;
+
+const Triage = z.object({
+  handwritten: z.boolean().describe('true, якщо номер, дата, кількості, ціни чи суми вписані від руки'),
+  clear: z.boolean().describe('true, якщо текст і цифри чіткі: не розмито, не криво, не обрізано, без відблисків і печаток поверх цифр')
+});
+const TRIAGE_SYSTEM = 'Ти сортуєш фото і скани бухгалтерських документів перед розпізнаванням. Подивись на документ і дай лише дві ознаки за схемою. Якщо сумніваєшся, handwritten = true, clear = false.';
 
 const SYSTEM = `Ти досвідчений український бухгалтер. Тобі надсилають документ: накладну, акт, рахунок, заявку, податкову накладну, чек, ТТН, касовий ордер (ПКО, РКО) або платіжну інструкцію. Твоє завдання: точно витягти з нього дані за схемою.
 
@@ -47,7 +64,7 @@ const json = (body: RecognizeResponse, status = 200) =>
 
 export default async (req: Request) => {
   // GET — перевірка з браузера: чи підключений ключ (сам ключ не показується)
-  if (req.method === 'GET') return new Response(JSON.stringify({ service: 'recognize', model: MODEL, key: process.env.ANTHROPIC_API_KEY ? 'підключено' : 'не задано' }), { headers: { 'content-type': 'application/json; charset=utf-8' } });
+  if (req.method === 'GET') return new Response(JSON.stringify({ service: 'recognize', model: OPUS, key: process.env.ANTHROPIC_API_KEY ? 'підключено' : 'не задано' }), { headers: { 'content-type': 'application/json; charset=utf-8' } });
   if (req.method !== 'POST') return json({ ok: false, error: 'Потрібен POST' }, 405);
   if (!process.env.ANTHROPIC_API_KEY) return json({ ok: false, error: 'Розпізнавання ще не підключене: на сервері не задано ключ ANTHROPIC_API_KEY' }, 503);
 
@@ -60,33 +77,11 @@ export default async (req: Request) => {
     ? { type: 'document', source: { type: 'base64', media_type: 'application/pdf', data: body.data } }
     : { type: 'image', source: { type: 'base64', media_type: body.mime as 'image/jpeg', data: body.data } };
 
-  const client = new Anthropic({ timeout: 55_000, maxRetries: 1 });
-  const read = () => client.beta.messages.parse({
-    model: MODEL,
-    max_tokens: 8000,
-    betas: ['server-side-fallback-2026-07-01'],
-    fallbacks: 'default',
-    output_config: { effort: 'high', format: betaZodOutputFormat(RecognizedWire) },
-    system: SYSTEM,
-    messages: [{
-      role: 'user',
-      content: [file, { type: 'text', text: `Наша компанія: ${body.company || 'ТОВ «Приклад»'}. Файл: ${body.name}. Розпізнай документ.` }]
-    }]
-  });
+  const client = new Anthropic({ timeout: BUDGET_MS, maxRetries: 1 });
   try {
-    // фото (часто рукопис) читаємо двічі паралельно і звіряємо; PDF зазвичай друкований — одного читання досить
-    const passes = isPdf ? 1 : 2;
-    const settled = await Promise.allSettled(Array.from({ length: passes }, read));
-    const done = settled.flatMap(r => r.status === 'fulfilled' ? [r.value] : []);
-    if (!done.length) throw (settled[0] as PromiseRejectedResult).reason;
-    const good = done.filter(m => m.stop_reason !== 'refusal' && m.stop_reason !== 'max_tokens' && m.parsed_output);
-    if (!good.length) {
-      if (done.some(m => m.stop_reason === 'refusal')) return json({ ok: false, error: 'Модель відмовилася обробляти цей файл' }, 422);
-      return json({ ok: false, error: 'Документ задовгий або нечитабельний: спробуйте окремі сторінки' }, 422);
-    }
-    if (good.length === 1) return json({ ok: true, result: fromWire(good[0].parsed_output!), model: good[0].model, passes: 1 });
-    const { result, diff } = reconcile(fromWire(good[0].parsed_output!), fromWire(good[1].parsed_output!));
-    return json({ ok: true, result, model: good[0].model, passes: 2, diff });
+    const out = await recognize(client, body, file);
+    console.log(JSON.stringify({ event: 'recognize_cost', file: body.name, mime: body.mime, ...out.log }));
+    return json(out.res, out.status);
   } catch (e) {
     if (e instanceof Anthropic.AuthenticationError) return json({ ok: false, error: 'Ключ ANTHROPIC_API_KEY недійсний' }, 503);
     if (e instanceof Anthropic.RateLimitError) return json({ ok: false, error: 'Забагато запитів, спробуйте за хвилину' }, 429);
@@ -97,5 +92,77 @@ export default async (req: Request) => {
     return json({ ok: false, error: 'Внутрішня помилка розпізнавання' }, 500);
   }
 };
+
+type File = Anthropic.Beta.BetaContentBlockParam;
+type Client = Pick<Anthropic, 'beta'>;
+
+/** Ядро розпізнавання; клієнт передається ззовні, щоб маршрут можна було перевірити без мережі. */
+export async function recognize(client: Client, body: RecognizeRequest, file: File, now = Date.now): Promise<{ status: number; log: Record<string, unknown>; res: RecognizeResponse }> {
+  const t0 = now();
+  const left = () => BUDGET_MS - (now() - t0);
+  const calls: Call[] = [];
+  const prompt = `Наша компанія: ${body.company || 'ТОВ «Приклад»'}. Файл: ${body.name}. Розпізнай документ.`;
+
+  // 1. Сортування: копійки (Haiku), але вирішує, чи можна читати дешевшою моделлю. Будь-яка помилка — читаємо як рукопис.
+  let printed = false;
+  try {
+    const t = now();
+    const m = await client.beta.messages.parse({
+      model: HAIKU, max_tokens: 1500,
+      output_config: { effort: 'low', format: betaZodOutputFormat(Triage) },
+      system: TRIAGE_SYSTEM,
+      messages: [{ role: 'user', content: [file, { type: 'text', text: 'Друкований чи рукописний, чіткий чи ні?' }] }]
+    }, { timeout: 10_000, maxRetries: 0 });
+    calls.push(callCost('triage', m.model, 'low', m.usage, now() - t));
+    printed = !!m.parsed_output && !m.parsed_output.handwritten && m.parsed_output.clear;
+  } catch { /* сортування не обов’язкове */ }
+
+  const read = async (step: Call['step'], model: string, effort: 'medium' | 'high') => {
+    const t = now();
+    const m = await client.beta.messages.parse({
+      model, max_tokens: 8000,
+      betas: ['server-side-fallback-2026-07-01'],
+      fallbacks: 'default',
+      output_config: { effort, format: betaZodOutputFormat(RecognizedWire) },
+      // системний промпт однаковий для всіх документів: кешується, друге читання і пакет документів платять за нього в 20 разів менше
+      system: [{ type: 'text', text: SYSTEM, cache_control: { type: 'ephemeral' } }],
+      messages: [{ role: 'user', content: [file, { type: 'text', text: prompt }] }]
+    }, { timeout: Math.max(5_000, left()), maxRetries: step === 'read' ? 1 : 0 });
+    calls.push(callCost(step, m.model, effort, m.usage, now() - t));
+    return m;
+  };
+  const usable = (m: Awaited<ReturnType<typeof read>> | null) => !!m && m.stop_reason !== 'refusal' && m.stop_reason !== 'max_tokens' && !!m.parsed_output;
+
+  // 2. Перше читання: друковане — Sonnet, рукопис і погане фото — Opus; обидва medium.
+  const route: 'printed' | 'handwritten' = printed ? 'printed' : 'handwritten';
+  let first: Awaited<ReturnType<typeof read>> | null = null, firstErr: unknown;
+  try { first = await read('read', printed ? SONNET : OPUS, 'medium'); } catch (e) { firstErr = e; }
+  const a = usable(first) ? fromWire(first!.parsed_output!) : null;
+  const reasons = a ? rereadReasons(a) : [first ? `перше читання: ${first.stop_reason}` : 'перше читання не вдалося'];
+
+  // 3. Друге читання лише за потреби: Opus на effort high, і звірка з першим.
+  let second: Awaited<ReturnType<typeof read>> | null = null;
+  let skipped = '';
+  if (reasons.length) {
+    if (left() < 15_000 && a) skipped = 'не вистачило часу';
+    else { try { second = await read('reread', OPUS, 'high'); } catch (e) { if (!a) throw e; skipped = 'помилка другого читання'; } }
+  }
+  const b = usable(second) ? fromWire(second!.parsed_output!) : null;
+  const cost = total(calls);
+  const log = { route, passes: calls.filter(c => c.step !== 'triage').length, reasons, skipped: skipped || undefined, ...cost, ms: now() - t0, calls };
+  const meta = { route, cost, reread: reasons.length ? reasons : undefined };
+
+  if (!a && !b) {
+    if (!first && !second && firstErr) throw firstErr;
+    const refused = [first, second].some(m => m?.stop_reason === 'refusal');
+    return { status: 422, log, res: { ok: false as const, error: refused ? 'Модель відмовилася обробляти цей файл' : 'Документ задовгий або нечитабельний: спробуйте окремі сторінки' } };
+  }
+  if (a && b) {
+    const { result, diff } = reconcile(a, b);
+    return { status: 200, log, res: { ok: true as const, result, model: second!.model, passes: 2, diff, ...meta } };
+  }
+  const only = (a ?? b)!, m = (a ? first : second)!;
+  return { status: 200, log, res: { ok: true as const, result: only, model: m.model, passes: 1, ...meta } };
+}
 
 export const config = { path: '/api/recognize' };
