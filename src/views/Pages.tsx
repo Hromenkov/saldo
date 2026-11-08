@@ -43,12 +43,12 @@ function QuestionCard({ q }: { q: Question }) {
     }, 250);
   };
   return (
-    <div className="card card-outlined q-card" id={q.id}>
+    <div className="m-card card-outlined q-card" id={q.id}>
       <div className="q-head"><span className="li" style={{ padding: 0, minHeight: 0 }}><span className="lead yellow"><Ms>{q.icon}</Ms></span></span>
         <div><div className="title-m">{q.title}</div><div className="q-meta body-s" style={{ marginTop: 4 }}>{q.meta.map(m => <span key={m}>{m}</span>)}</div></div></div>
       <div className="chips" style={{ paddingLeft: 56 }}>
         {q.opts.map(([o, h]) => (
-          <button key={o} className="chip sl" aria-pressed={picked === o} onClick={() => answer(o)}>
+          <button key={o} className="m-chip sl" aria-pressed={picked === o} onClick={() => answer(o)}>
             {o}{h && <span className="body-s muted" style={{ marginLeft: -2 }}>· {h}</span>}
           </button>
         ))}
@@ -80,7 +80,7 @@ export function Docs() {
         <button className="btn btn-outlined sl" onClick={() => snack('Надішліть фото на docs@saldo.ua або в Telegram-бот @saldo_docs_bot')}><Ms>alternate_email</Ms>Як надсилати</button>
         <button className="btn btn-outlined sl" onClick={() => exportBas(s.docs, snack, ids => upd(d => { const at = new Date().toISOString().slice(0, 10); d.docs.forEach(x => { if (ids.includes(x.id)) x.basAt = at; }); }))} title="Файл EnterpriseData: BAS → Вивантаження і завантаження даних EnterpriseData"><Ms>output</Ms>Вивантажити в BAS</button>
         <button className="btn btn-filled sl" onClick={() => openDialog({ kind: 'upload' })}><Ms>upload</Ms>Завантажити</button></div>
-      <div className="tabs" role="tablist">{tabs.map(([k, l]) => (
+      <div className="m-tabs" role="tablist">{tabs.map(([k, l]) => (
         <button key={k} className="tab" role="tab" aria-selected={f === k} onClick={() => upd(d => { d.docTab = k; })}>{l} <span className="muted">{s.docs.filter(d => k === 'all' || d.st === k).length}</span></button>
       ))}</div>
       <div className="table-wrap"><table className="dt">
@@ -103,7 +103,7 @@ export function Bank() {
       <div className="grid g4" style={{ marginBottom: 20 }}>
         <StatCard ic="account_balance" t="ПриватБанк · UA…1234" v="312 480,15 ₴" d="API · оновлено 5 хв тому" />
         <StatCard ic="account_balance" t="monobank · UA…7788" v="99 900,00 ₴" d="API · оновлено 5 хв тому" />
-        <div className="card card-outlined stat" style={{ justifyContent: 'center', alignItems: 'flex-start' }}><button className="btn btn-tonal sl" onClick={() => snack('Підключення банку: оберіть банк і надайте доступ лише на читання')}><Ms>add_link</Ms>Підключити рахунок</button></div>
+        <div className="m-card card-outlined stat" style={{ justifyContent: 'center', alignItems: 'flex-start' }}><button className="btn btn-tonal sl" onClick={() => snack('Підключення банку: оберіть банк і надайте доступ лише на читання')}><Ms>add_link</Ms>Підключити рахунок</button></div>
       </div>
       <BankTable rows={s.bank} full />
     </div>
@@ -112,7 +112,7 @@ export function Bank() {
 
 function ToggleChips({ items, initial }: { items: string[]; initial: number }) {
   const [on, setOn] = useState(initial);
-  return <div className="chips">{items.map((x, i) => <button key={x} className="chip sl" aria-pressed={on === i} onClick={() => setOn(i)}>{on === i && <Ms>check</Ms>}{x}</button>)}</div>;
+  return <div className="chips">{items.map((x, i) => <button key={x} className="m-chip sl" aria-pressed={on === i} onClick={() => setOn(i)}>{on === i && <Ms>check</Ms>}{x}</button>)}</div>;
 }
 
 export function Ledger() {
@@ -139,12 +139,12 @@ export function Close() {
   return (
     <div className="page">
       <div className="page-head"><h1 className="headline-s">Закриття місяця</h1><span className="spacer" /><span className="body-m muted">Листопад 2026</span></div>
-      <div className="card card-filled">
+      <div className="m-card card-filled">
         <div className="title-m">Виконано {done} з {s.close.length} кроків</div>
         <div className="progress-l"><span style={{ width: `${done / s.close.length * 100}%` }} /></div>
         <div className="body-s muted">Система виконує регламентні операції сама. Ви підтверджуєте результат і блокуєте період.</div>
       </div>
-      <div className="card card-outlined" style={{ padding: 0, marginTop: 12 }}>
+      <div className="m-card card-outlined" style={{ padding: 0, marginTop: 12 }}>
         <ul className="steps">{s.close.map(c => (
           <li key={c.t} className={cx(c.done && 'done')}><span className="chk">{c.done && <Ms>check</Ms>}</span>
             <span className="txt"><div className="title-s">{c.t}</div><div className="body-s muted">{c.s}</div></span>

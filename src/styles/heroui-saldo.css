@@ -1,0 +1,40 @@
+/* Налаштування компонентів HeroUI під макет Сальдо (каркас і «Огляд»).
+   Файл без шару, тому перекриває стилі HeroUI. */
+
+/* іконки Material Symbols усередині кнопок і вкладок */
+.button .ms, .toggle-button .ms, .tabs__tab .ms { font-size: 20px; line-height: 1; }
+.button { gap: 6px; }
+
+/* меню зліва */
+.drawer .fab-h { align-self: flex-start; margin: 4px 0 16px 4px; box-shadow: var(--card-shadow); }
+.drawer .role-toggle { margin: 0 0 12px; }
+.month-progress { display: grid; grid-template-columns: 1fr auto; align-items: center; gap: 6px 8px; margin: 0 0 6px; }
+.month-progress .progress-bar__track { grid-column: 1 / -1; }
+.top-avatar { margin-left: 8px; }
+
+/* картки */
+.h-card { padding: 16px; border-radius: 16px; border: 1px solid rgba(16,32,64,.06); box-shadow: var(--card-shadow); gap: 0;
+  transition: transform .25s var(--ease), box-shadow .25s var(--ease); }
+.h-card:hover { box-shadow: var(--card-shadow-hover); }
+.h-card.stat { gap: 8px; }
+.h-card.stat:hover { transform: translateY(-2px); }
+.h-card-outlined { box-shadow: none; }
+.h-card-head { display: flex; flex-direction: row; align-items: center; justify-content: space-between; gap: 8px; margin: 0 0 8px; }
+.h-card-list { padding: 8px 0; }
+.h-card-list .h-card-head { margin: 8px 16px; }
+
+/* банери і вкладки */
+.h-banner { margin-bottom: 16px; align-items: center; box-shadow: var(--card-shadow); }
+.h-banner .alert__indicator .ms { font-size: 22px; }
+.mode-tabs { margin-bottom: 16px; align-self: flex-start; }
+.mode-tabs .tabs__tab { gap: 6px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .h-card, .h-card.stat:hover { transition: none; transform: none; }
+}
+
+.mode-tabs .tabs__tab { white-space: nowrap; }
+@media (max-width: 600px) {
+  .h-banner { flex-wrap: wrap; }
+  .mode-tabs .tabs__tab { padding-inline: 10px; }
+}

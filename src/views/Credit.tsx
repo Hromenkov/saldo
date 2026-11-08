@@ -63,7 +63,7 @@ export function Credit() {
       <div className="page-head"><h1 className="headline-s">Кредити і валюта</h1><span className="spacer" />
         <span className="body-s muted">{src === 'demo' ? 'Курси прикладу' : 'Офіційні курси НБУ'}</span>
         <button className="btn btn-outlined sl" disabled={busy} onClick={refresh}><Ms>{busy ? 'hourglass_top' : 'currency_exchange'}</Ms>Курси НБУ</button></div>
-      <div className="tabs" role="tablist">
+      <div className="m-tabs" role="tablist">
         {([['loans', 'Кредити'], ['fx', 'Курсові різниці']] as [Tab, string][]).map(([k, l]) =>
           <button key={k} className="tab" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}
       </div>
@@ -116,7 +116,7 @@ function NewLoan({ onAdd }: { onAdd: (l: Loan) => void }) {
   const loan: Loan = { id: 'n' + Date.now(), bank: f.bank || 'Банк', contract: f.contract || 'б/н', currency: f.currency, principal: +f.principal, rate: +f.rate, start: f.start, months: Math.round(+f.months), method: f.method };
   const err = !(loan.principal > 0) ? 'Сума має бути більшою за нуль' : !(loan.months >= 1 && loan.months <= 360) ? 'Строк від 1 до 360 місяців' : !(loan.rate >= 0 && loan.rate < 100) ? 'Ставка від 0 до 100%' : !/^\d{4}-\d{2}-\d{2}$/.test(loan.start) ? 'Дата у форматі РРРР-ММ-ДД' : '';
   const fld = (label: string, el: React.ReactNode) => <label className="body-s"><div className="muted" style={{ marginBottom: 4 }}>{label}</div>{el}</label>;
-  return <div className="card card-outlined" style={{ marginTop: 12 }}>
+  return <div className="m-card card-outlined" style={{ marginTop: 12 }}>
     <div className="title-m" style={{ marginBottom: 12 }}>Новий кредитний договір</div>
     <div className="grid" style={{ gridTemplateColumns: 'repeat(auto-fill,minmax(160px,1fr))' }}>
       {fld('Банк', <input style={inp} value={f.bank} onChange={set('bank')} placeholder="ПриватБанк" />)}
@@ -141,7 +141,7 @@ function LoanCard({ l, ps, rates }: { l: Loan; ps: Posting[]; rates: Rates }) {
   const uah = l.currency === 'UAH' ? month : toUah(month, l.currency, rates);
   const issues = checkLines(toLines(uah));
   const tot = (k: 'interest' | 'principal' | 'payment') => r2(rows.reduce((s, r) => s + r[k], 0));
-  return <div className="card card-outlined" style={{ marginTop: 16 }}>
+  return <div className="m-card card-outlined" style={{ marginTop: 16 }}>
     <div className="section-title" style={{ marginTop: 0 }}>
       <div><div className="title-m">{l.bank} · № {l.contract}</div>
         <div className="body-s muted">{money(l.principal, l.currency)} під {l.rate}% на {l.months} міс. з {ua(l.start)} · {METHOD[l.method]}</div></div>
@@ -181,7 +181,7 @@ function Fx({ items, rates }: { items: FxItem[]; rates: Rates }) {
   const issues = checkLines(rep.diffs.map(d => [d.posting.dt, d.posting.kt, d.posting.amount, d.posting.text]));
   const advances = items.filter(i => i.advance);
   return <>
-    <div className="chips" style={{ marginBottom: 12 }}>{MONTHS.map(([d, n]) => <button key={d} className="chip sl" aria-pressed={end === d} onClick={() => setEnd(d)}>{end === d && <Ms>check</Ms>}{n} 2026</button>)}</div>
+    <div className="chips" style={{ marginBottom: 12 }}>{MONTHS.map(([d, n]) => <button key={d} className="m-chip sl" aria-pressed={end === d} onClick={() => setEnd(d)}>{end === d && <Ms>check</Ms>}{n} 2026</button>)}</div>
     <div className="grid g4" style={{ marginBottom: 20 }}>
       <StatCard ic="trending_up" t="Дохід, операційні" v={fmt0(rep.s714) + ' ₴'} d="Кт 714: розрахунки, валютний рахунок" />
       <StatCard ic="trending_down" t="Втрати, операційні" v={fmt0(rep.s945) + ' ₴'} d="Дт 945" />
