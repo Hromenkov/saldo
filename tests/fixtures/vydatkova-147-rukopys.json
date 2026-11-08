@@ -1,0 +1,22 @@
+{
+  "file": "vydatkova-147-rukopys.jpg",
+  "company": "ТОВ «Приклад»",
+  "about": "Друкований бланк видаткової, заповнений від руки; платник ПДВ 20%",
+  "expect": {
+    "kind": "purchase_goods",
+    "number": "147",
+    "date": "2026-10-28",
+    "counterparty_name_has": "Зелений Двір",
+    "edrpou": "38745213",
+    "items": [
+      { "name_has": "Картопля", "qty": 50, "price": 18.5, "amount": 925 },
+      { "name_has": "Цибуля", "qty": 20, "price": 22, "amount": 440 },
+      { "name_has": "Морква", "qty": 15, "price": 19, "amount": 285 },
+      { "name_has": "Яйця", "qty": 360, "price": 4.8, "amount": 1728 }
+    ],
+    "net": 3378,
+    "vat": 675.6,
+    "total": 4053.6,
+    "handwritten": true
+  }
+}

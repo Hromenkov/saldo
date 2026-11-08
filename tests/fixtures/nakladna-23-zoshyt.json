@@ -1,0 +1,21 @@
+{
+  "file": "nakladna-23-zoshyt.jpg",
+  "company": "ТОВ «Приклад»",
+  "about": "Рукописна накладна в зошиті від ФОП, без ПДВ. Пастка: рядки дають 2960, а «Разом» написано 2690 (переставлені цифри). Правильна поведінка — переписати 2690 як є і позначити суму сумнівною",
+  "expect": {
+    "kind": "purchase_goods",
+    "number": "23",
+    "date": "2026-10-30",
+    "counterparty_name_has": "Коваленко",
+    "edrpou": "3182504173",
+    "items": [
+      { "name_has": "Хліб", "qty": 40, "price": 32, "amount": 1280 },
+      { "name_has": "Булочки", "qty": 60, "price": 14, "amount": 840 },
+      { "name_has": "Батон", "qty": 30, "price": 28, "amount": 840 }
+    ],
+    "total": 2690,
+    "vat": 0,
+    "handwritten": true,
+    "flag_any": ["total", "net"]
+  }
+}

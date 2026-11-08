@@ -1,0 +1,18 @@
+{
+  "file": "vydatkova-2214-kryvo.jpg",
+  "company": "ТОВ «Приклад»",
+  "about": "Криве розмите фото з плямою, рукопис дрібний; у першому рядку 12 закреслено і виправлено на 14,5. Дату (31.10.2026?) не перевіряємо: читається неоднозначно",
+  "expect": {
+    "kind": "purchase_goods",
+    "number": "2214",
+    "counterparty_name_has": "Мельничук",
+    "items": [
+      { "name_has": "Свинина", "qty": 14.5, "price": 189, "amount": 2740.5 },
+      { "name_has": "філе", "qty": 8, "price": 167, "amount": 1336 },
+      { "name_has": "Сало", "qty": 3.2, "price": 140, "amount": 448 },
+      { "name_has": "Фарш", "qty": 6, "price": 219, "amount": 1314 }
+    ],
+    "total": 5838.5,
+    "handwritten": true
+  }
+}
