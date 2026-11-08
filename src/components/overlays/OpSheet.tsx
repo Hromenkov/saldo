@@ -25,7 +25,7 @@ export function OpSheet({ i }: { i: number }) {
             {o[3].some(l => l.some(x => x.startsWith('644') || x === '6412')) && <li><Ms>check_circle</Ms>ПДВ звірено з ЄРПН</li>}
             {o[5] === 'confirm' && <li><Ms>check_circle</Ms>Потрібне підтвердження відповідальної особи</li>}
           </ul></div>
-        <div className="card card-filled"><div className="title-s">Тест шаблону</div><div className="body-s muted" style={{ marginTop: 4 }}>Еталонний приклад, перевірений бухгалтером-методологом: документ на вході дає саме ці проводки.</div><div style={{ marginTop: 10 }}><span className="status st-ok"><Ms>check</Ms>Пройдено</span></div></div>
+        <div className="m-card card-filled"><div className="title-s">Тест шаблону</div><div className="body-s muted" style={{ marginTop: 4 }}>Еталонний приклад, перевірений бухгалтером-методологом: документ на вході дає саме ці проводки.</div><div style={{ marginTop: 10 }}><span className="status st-ok"><Ms>check</Ms>Пройдено</span></div></div>
       </div>
       <div className="sheet-foot"><button className="btn btn-text sl" onClick={closeSheet}>Закрити</button><button className="btn btn-filled sl" onClick={() => snack('Шаблон збережено. Нова версія діятиме з наступного документа')}><Ms>save</Ms>Зберегти</button></div>
     </>

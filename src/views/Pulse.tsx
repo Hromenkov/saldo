@@ -13,7 +13,7 @@ export function Pulse() {
   const p = pulse(s.docs, s.bank, month, year, { today: asOf() });
   const fresh = p.lagDays <= 2;
   const tile = (ic: string, t: string, v: string, d: string, tone?: 'red' | 'yellow' | 'green', onClick?: () => void) => (
-    <button className={cx('card card-outlined stat pulse-tile sl', tone && 'tone-' + tone)} onClick={onClick} disabled={!onClick} style={{ textAlign: 'left' }}>
+    <button className={cx('m-card card-outlined stat pulse-tile sl', tone && 'tone-' + tone)} onClick={onClick} disabled={!onClick} style={{ textAlign: 'left' }}>
       <div className="top"><Ms>{ic}</Ms><span className="title-s">{t}</span></div>
       <div className="v">{v}</div><div className="d body-s">{d}</div>
     </button>

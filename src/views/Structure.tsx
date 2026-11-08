@@ -27,7 +27,7 @@ export function Structure() {
       <div className="page-head"><h1 className="headline-s">Структура і зміни</h1><span className="spacer" />
         <button className="btn btn-outlined sl" onClick={() => snack('Показано стан структури на 01.01.2026')}><Ms>history</Ms>Стан на дату</button>
         <button className="btn btn-filled sl" onClick={() => openDialog({ kind: 'plan' })}><Ms>add</Ms>Запланувати зміну</button></div>
-      <div className="tabs" role="tablist">{groups.map(g => <button key={g} className="tab" role="tab" aria-selected={f === g} onClick={() => upd(d => { d.structTab = g; })}>{g}</button>)}</div>
+      <div className="m-tabs" role="tablist">{groups.map(g => <button key={g} className="tab" role="tab" aria-selected={f === g} onClick={() => upd(d => { d.structTab = g; })}>{g}</button>)}</div>
       <div className="struct-grid">
         <div className="table-wrap"><table className="dt">
           <thead><tr><th>Об’єкт</th><th>Що діє</th><th>Діє з</th><th>Діє до</th><th>Стан</th></tr></thead>
@@ -37,13 +37,13 @@ export function Structure() {
           ))}</tbody>
         </table></div>
         <div className="grid" style={{ alignContent: 'start' }}>
-          <div className="card card-outlined" style={{ padding: '8px 0' }}>
+          <div className="m-card card-outlined" style={{ padding: '8px 0' }}>
             <div className="section-title" style={{ margin: '8px 16px' }}><span className="title-m">Історія змін</span></div>
             <ul className="list">{s.history.map(([ic, d, t, sub], i) => (
               <li className="li" key={i}><span className={'lead ' + (ic === 'event_upcoming' ? 'yellow' : 'blue')}><Ms>{ic}</Ms></span><span className="txt"><div className="title-s">{t}</div><div className="s body-s">{d} · {sub}</div></span></li>
             ))}</ul>
           </div>
-          <div className="card card-filled">
+          <div className="m-card card-filled">
             <div className="title-m" style={{ marginBottom: 10 }}>Як Сальдо працює зі змінами</div>
             <ul className="checks body-m">{RULES.map(r => <li key={r}><Ms>check_circle</Ms>{r}</li>)}</ul>
           </div>

@@ -11,7 +11,7 @@ export function Ops() {
   return (
     <div className="page">
       <div className="page-head"><h1 className="headline-s">Типові операції</h1><span className="spacer" />
-        <button className="chip sl" aria-pressed="true" onClick={() => upd(d => { d.onbOpen = true; })}><Ms>{b.ic}</Ms>{b.t}</button>
+        <button className="m-chip sl" aria-pressed="true" onClick={() => upd(d => { d.onbOpen = true; })}><Ms>{b.ic}</Ms>{b.t}</button>
         <button className="btn btn-outlined sl" onClick={() => snack('Нову операцію буде створено з відповіді на питання в черзі')}><Ms>add</Ms>Нова операція</button></div>
       {b.k !== 'cafe' && <div className="banner"><Ms>info</Ms><div className="txt body-m">У прототипі показано каталог кав’ярні. Каталоги інших типів бізнесу будуються так само.</div></div>}
       <div className="grid g4" style={{ marginBottom: 20 }}>

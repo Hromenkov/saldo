@@ -1,5 +1,5 @@
 /* cards */
-.card { border-radius: 12px; padding: 16px; }
+.m-card { border-radius: 12px; padding: 16px; }
 .card-filled { background: var(--md-surface-container-low); }
 .card-outlined { border: 1px solid var(--md-outline-variant); background: var(--md-surface-container-lowest); }
 .grid { display: grid; gap: 12px; }
@@ -27,13 +27,13 @@
 .li .trail { display: flex; align-items: center; gap: 8px; flex: none; }
 
 /* chips */
-.chip {
+.m-chip {
   display: inline-flex; align-items: center; gap: 8px; height: 32px; padding: 0 16px; border-radius: 8px;
   border: 1px solid var(--md-outline); background: transparent; cursor: pointer; font-weight: 500; font-size: 14px; white-space: nowrap;
   color: var(--md-on-surface-variant);
 }
-.chip .ms { font-size: 18px; margin-left: -8px; }
-.chip[aria-pressed="true"] { background: var(--md-secondary-container); color: var(--md-on-secondary-container); border-color: transparent; }
+.m-chip .ms { font-size: 18px; margin-left: -8px; }
+.m-chip[aria-pressed="true"] { background: var(--md-secondary-container); color: var(--md-on-secondary-container); border-color: transparent; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .status { display: inline-flex; align-items: center; gap: 6px; height: 24px; padding: 0 10px; border-radius: 6px; font-size: 12px; font-weight: 600; letter-spacing: .3px; white-space: nowrap; }
 .status .ms { font-size: 16px; }
@@ -138,7 +138,7 @@ table.dt { width: 100%; border-collapse: collapse; min-width: 720px; }
 .chart { width: 100%; height: 220px; display: block; }
 .chart .grid-l { stroke: var(--md-outline-variant); stroke-width: 1; }
 .chart .axis { fill: var(--md-on-surface-variant); font-size: 11px; font-family: var(--font); }
-.tabs { display: flex; gap: 0; border-bottom: 1px solid var(--md-outline-variant); margin-bottom: 16px; overflow-x: auto; }
+.m-tabs { display: flex; gap: 0; border-bottom: 1px solid var(--md-outline-variant); margin-bottom: 16px; overflow-x: auto; }
 .tab { height: 48px; padding: 0 16px; border: 0; background: transparent; cursor: pointer; font-weight: 500; color: var(--md-on-surface-variant); position: relative; white-space: nowrap; }
 .tab[aria-selected="true"] { color: var(--md-primary); }
 .tab[aria-selected="true"]::after { content: ""; position: absolute; left: 12px; right: 12px; bottom: 0; height: 3px; border-radius: 3px 3px 0 0; background: var(--md-primary); }
