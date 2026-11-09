@@ -6,9 +6,10 @@ import { getStock, addMovement, canChangeMethod, ledger, nameOf, newId, opts, re
 import { useApp } from '../store';
 import { cx, fmt, fmt0, Ms, plural } from '../lib';
 import { StatCard } from './Overview';
+import { Prices } from './Prices';
 
-type Tab = 'bal' | 'sale' | 'ops' | 'cards' | 'journal';
-const TABS: [Tab, string][] = [['bal', 'Залишки'], ['sale', 'Списання за продажами'], ['ops', 'Переміщення і інвентаризація'], ['cards', 'Техкарти'], ['journal', 'Журнал рухів']];
+type Tab = 'bal' | 'prices' | 'sale' | 'ops' | 'cards' | 'journal';
+const TABS: [Tab, string][] = [['bal', 'Залишки'], ['prices', 'Ціни постачальників'], ['sale', 'Списання за продажами'], ['ops', 'Переміщення і інвентаризація'], ['cards', 'Техкарти'], ['journal', 'Журнал рухів']];
 const TYPE: Record<Movement['type'], [string, string]> = { in: ['Надходження', 'move_to_inbox'], move: ['Переміщення', 'swap_horiz'], prod: ['Списання за техкартами', 'restaurant'], out: ['Списання на витрати', 'outbox'], count: ['Інвентаризація', 'fact_check'] };
 /** Дата за замовчуванням: сьогодні, але не раніше останнього руху (демо-журнал іде наперед). */
 const today = () => [new Date().toISOString().slice(0, 10), ...getStock().movements.map(m => m.date)].sort().pop()!;
@@ -51,6 +52,7 @@ export function Stock() {
       </div>
       <div className="tabs" role="tablist">{TABS.map(([k, l]) => <button key={k} className="tab" role="tab" aria-selected={tab === k} onClick={() => setTab(k)}>{l}</button>)}</div>
       {tab === 'bal' && <Balances bal={bal} lots={L.lots} />}
+      {tab === 'prices' && <Prices />}
       {tab === 'sale' && <SaleForm />}
       {tab === 'ops' && <OpsForm />}
       {tab === 'cards' && <Cards lots={L.lots} />}

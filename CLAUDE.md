@@ -32,7 +32,7 @@
 **Стили** (`src/styles/`, порядок задан в `index.css`): `tokens` токены (светлая палитра в стиле ReUI «Signal», радиус 0; старые имена `--md-*` ссылаются на новые `--bg`, `--fg`, `--muted`, `--border`…) и кнопки · `shell` каркас (сайдбар на всю высоту, шапка с крошками) · `components` карточки, списки, чипы, таблицы, поля, панель, диалог · `onboarding` · `assistant` · `theme` тема «Signal» (ReUI/shadcn): рамки, фреймы, бейджи, таблицы · `pulse`.
 
 **Логика (без UI):**
-- `src/recognize/` — распознавание документов: `schema` поля, `client` вызов API, `checks` проверки, `chart` план счетов и корреспонденции, `accounts` список счетов, `rules` правила по контрагенту, `nomenclature` справочник, `basis` подстава и статьи ДДС, `settlements` взаиморасчёты, `suppliers`/`companies`/`registry` реестры, `cost`/`escalate` стоимость и второе чтение.
+- `src/recognize/` — распознавание документов: `schema` поля, `client` вызов API, `checks` проверки, `chart` план счетов и корреспонденции, `accounts` список счетов, `rules` правила по контрагенту, `prices` історія закупівельних цін і скачки (UI — вкладка складу `src/views/Prices.tsx`), `nomenclature` справочник, `basis` подстава и статьи ДДС, `settlements` взаиморасчёты, `suppliers`/`companies`/`registry` реестры, `cost`/`escalate` стоимость и второе чтение.
 - `src/import1c/` — импорт выписок, EnterpriseData, ОСВ; `export.ts` — выгрузка в BAS.
 - `src/finance/` (кредиты, курсы НБУ, валюта), `src/assets/fixed.ts` (ОЗ и амортизация), `src/stock/` (склад), `src/payroll/` (зарплата), `src/vat/` (НДС), `src/audit/` (аудит и пульс).
 - `netlify/functions/` — серверные функции: `recognize.mts` (Claude API, нужен `ANTHROPIC_API_KEY`), `nbu-rate.mts`.
