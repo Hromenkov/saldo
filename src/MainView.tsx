@@ -1,6 +1,6 @@
-import { useLayoutEffect, useRef, useState } from 'react';
-import { useApp } from './store';
-import { reduceMotion } from './lib';
+import { Fragment, useLayoutEffect, useRef, useState } from 'react';
+import { useApp, viewLabel } from './store';
+import { Ms, reduceMotion } from './lib';
 import { Overview } from './views/Overview';
 import { Questions, Docs, Bank, Ledger, Close, Reports } from './views/Pages';
 import { Ops } from './views/Ops';
@@ -33,7 +33,24 @@ export function Main() {
     });
   }, [s.nav]);
 
-  return <main className="main" id="main" ref={ref}><View /></main>;
+  return <main className="main" id="main" ref={ref}><Crumbs /><View /></main>;
+}
+
+/** Крихти і «Назад», коли сторінку відкрили посиланням з іншої сторінки (а не з меню) */
+function Crumbs() {
+  const { s, go, back } = useApp();
+  if (!s.trail.length) return null;
+  const label = (v: typeof s.view) => viewLabel(s.role, v);
+  const prev = s.trail[s.trail.length - 1];
+  return (
+    <nav className="crumbs" aria-label="Шлях">
+      <button className="icon-btn sl" aria-label={`Назад: ${label(prev)}`} title={`Назад: ${label(prev)}`} onClick={back}><Ms>arrow_back</Ms></button>
+      <ol>
+        {s.trail.map(v => <Fragment key={v}><li><button className="crumb sl" onClick={() => go(v)}>{label(v)}</button></li><li aria-hidden="true"><Ms className="sep">chevron_right</Ms></li></Fragment>)}
+        <li><span className="crumb cur" aria-current="page">{label(s.view)}</span></li>
+      </ol>
+    </nav>
+  );
 }
 
 /** Значення картки-показника: ціле число «набігає» від нуля при переході на сторінку */

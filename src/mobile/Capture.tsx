@@ -13,7 +13,7 @@ const stamp = () => {
 };
 
 /** Камеру відкрито ярликом /app/camera: після закриття адреса повертається до /app */
-const leaveCameraUrl = () => { if (/\/camera\/?$/.test(location.pathname)) history.replaceState(null, '', '/app'); };
+const leaveCameraUrl = () => { if (/\/camera\/?$/.test(location.pathname)) history.replaceState(history.state, '', '/app' + location.hash); };
 
 export function Capture() {
   const { s, upd, snack } = useApp();

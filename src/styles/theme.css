@@ -54,3 +54,66 @@ body { background: var(--app-bg); }
 .nom-sel { width: 100%; font: inherit; font-size: 13px; color: var(--md-on-surface); background: var(--md-surface-container-lowest); border: 1px solid var(--md-outline-variant); border-radius: 8px; padding: 6px 8px; }
 .nom-sel:focus-visible { outline: 2px solid var(--md-primary); outline-offset: 1px; }
 
+
+/* ===== Material 3: єдині деталі для всіх екранів ===== */
+:root { --chart-line: var(--md-primary); --card: #fff; --warning: #8A6100; --md-elev-3: var(--elev-3); }
+
+/* кнопка з іконкою після тексту («Уся звітність →»): іконка 18px, відступ дзеркальний до іконки зліва */
+.btn > .ms:last-child:not(:first-child) { margin-left: 0; margin-right: -8px; }
+.btn-text > .ms:last-child:not(:first-child) { margin-right: -4px; }
+
+/* меню зліва: пункти не стискаються, коли їх більше за висоту екрана, а прокручуються */
+.drawer > *, #navItems > * { flex-shrink: 0; }
+
+/* вкладки: іконка і текст на одній лінії, однакова висота, фокус не обрізається */
+.tab { display: inline-flex; align-items: center; justify-content: center; gap: 8px; flex: none; }
+.tab .ms { font-size: 18px; }
+.tab:focus-visible { outline-offset: -4px; border-radius: 8px; }
+.tabs { scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+
+/* картка-показник: лічильник праворуч від назви */
+.stat .top .title-s { flex: 1; min-width: 0; }
+.stat .top .meta { flex: none; color: var(--md-on-surface-variant); }
+
+/* картка з шапкою (Огляд): іконка · назва · лічильник, тіло, дія внизу */
+.frame {
+  display: flex; flex-direction: column; min-width: 0; background: #fff; border: 1px solid rgba(16,32,64,.06);
+  border-radius: 12px; box-shadow: var(--card-shadow); transition: box-shadow .25s var(--ease); overflow: hidden;
+}
+.frame:hover { box-shadow: var(--card-shadow-hover); }
+.frame-hd { display: flex; align-items: center; gap: 12px; min-height: 64px; padding: 12px 16px 4px; }
+.frame-hd > .ms { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 19px; background: #E8F0FE; color: var(--md-primary); flex: none; }
+.frame-hd .t { flex: 1; min-width: 0; font-size: 16px; line-height: 24px; font-weight: 600; letter-spacing: .15px; }
+.frame-hd .meta {
+  flex: none; display: inline-flex; align-items: center; height: 24px; padding: 0 10px; border-radius: 12px;
+  background: var(--md-surface-container); color: var(--md-on-surface-variant); font-size: 12px; font-weight: 500; letter-spacing: .3px; white-space: nowrap;
+}
+.frame-bd { flex: 1; min-width: 0; padding: 8px 16px 16px; }
+.frame-bd.flush { padding: 4px 0 0; }
+.frame-ft { display: flex; align-items: center; padding: 6px 8px; border-top: 1px solid var(--md-outline-variant); }
+
+/* крихти і «Назад» над сторінкою, відкритою посиланням */
+.crumbs { display: flex; align-items: center; gap: 4px; padding: 12px 24px 0 12px; min-height: 52px; }
+.crumbs ol { display: flex; align-items: center; flex-wrap: wrap; gap: 0; list-style: none; margin: 0; padding: 0; min-width: 0; }
+.crumbs li { display: flex; align-items: center; }
+.crumb { display: inline-flex; align-items: center; height: 32px; padding: 0 8px; border: 0; border-radius: 16px; background: transparent; color: var(--md-primary); font-size: 14px; font-weight: 500; cursor: pointer; }
+.crumb.cur { color: var(--md-on-surface-variant); cursor: default; }
+.crumbs .sep { font-size: 18px; color: var(--md-outline); }
+.crumbs + .page { padding-top: 4px; }
+
+/* логотип веде на головну */
+button.brand { border: 0; background: transparent; cursor: pointer; height: 48px; border-radius: 24px; font-family: inherit; }
+
+@media (max-width: 600px) {
+  .crumbs { padding: 8px 16px 0 4px; }
+}
+
+/* число на картці-показнику не переноситься: у вузькій картці трохи зменшується, не більше 28px */
+.stat { container-type: inline-size; }
+.stat .v { white-space: nowrap; font-size: min(28px, 12.5cqi); }
+
+/* шапка сторінки: якщо кнопки не вміщаються, вони переносяться праворуч, а не під заголовок зліва */
+.page-head { justify-content: flex-end; row-gap: 8px; }
+.page-head h1 { margin-right: auto; }
+.section-title { flex-wrap: wrap; row-gap: 4px; }

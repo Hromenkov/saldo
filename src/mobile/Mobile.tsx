@@ -17,7 +17,7 @@ export function BottomBar() {
     const n = items.find(x => x[0] === v); if (!n) return null;
     const badge = n[3]?.(s);
     return (
-      <button key={v} className="bb-item" aria-current={s.view === v && !s.drawerOpen ? 'page' : undefined} onClick={() => go(v)}>
+      <button key={v} className="bb-item" aria-current={s.view === v && !s.drawerOpen ? 'page' : undefined} onClick={() => go(v, { top: true })}>
         <span className="bb-ic"><Ms>{n[1]}</Ms>{badge ? <i className="bb-badge">{badge}</i> : null}</span>
         <span className="bb-l">{v === 'docs' && s.role === 'acc' ? 'Документи' : n[2]}</span>
       </button>
