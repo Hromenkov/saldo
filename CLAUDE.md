@@ -24,12 +24,16 @@
 | Карточка документа (проводки, номенклатура, склад, подстава) | `src/components/overlays/DocSheet.tsx` |
 | Карточка типовой операции | `src/components/overlays/OpSheet.tsx` |
 | Диалоги: подпись, загрузка/импорт 1С, план, акт сверки | `src/components/overlays/dialogs.tsx` |
+| Общий путь «файлы → распознавание → документы» (диалог, камера, очередь) | `src/components/useRecognize.ts` |
+| Телефон: камера для накладной (`/app/camera`) | `src/mobile/Capture.tsx` |
+| Телефон: нижняя панель, очередь фото без сети, «Встановити на телефон» | `src/mobile/Mobile.tsx`, `queue.ts` (IndexedDB), `pwa.ts` |
+| PWA: манифест, иконки, service worker | `public/manifest.webmanifest`, `public/icons/`, `public/sw.js` (при смене логики кеша поднять `VERSION`) |
 
 **Страницы** (`src/views/`): `Overview` огляд · `Pulse` пульс владельца · `Audit` аудит · `Pages` (вопросы, документы, банк, ОСВ, закрытие месяца, отчётность) · `Assets` ОЗ (+ `AssetSheet`) · `Stock` склад · `Credit` кредиты и валюта · `Payroll` зарплата · `Vat` НДС · `Ops` типовые операции · `Structure` структура и изменения.
 
 **Демо-данные** (`src/data/`, импортировать из `'../data'`): `docs.ts` документы, банк, вопросы, отчёты, закрытие, ОЗ, ОСВ · `onboarding.ts` типы бизнеса, формы, каталоги подключений · `ops.ts` каталог типовых операций · `structure.ts` структура, история, типы изменений.
 
-**Стили** (`src/styles/`, порядок задан в `index.css`): `tokens` токены (светлая палитра в стиле ReUI «Signal», радиус 0; старые имена `--md-*` ссылаются на новые `--bg`, `--fg`, `--muted`, `--border`…) и кнопки · `shell` каркас (сайдбар на всю высоту, шапка с крошками) · `components` карточки, списки, чипы, таблицы, поля, панель, диалог · `onboarding` · `assistant` · `theme` тема «Signal» (ReUI/shadcn): рамки, фреймы, бейджи, таблицы · `pulse`.
+**Стили** (`src/styles/`, порядок задан в `index.css`): `tokens` токены (светлая палитра в стиле ReUI «Signal», радиус 0; старые имена `--md-*` ссылаются на новые `--bg`, `--fg`, `--muted`, `--border`…) и кнопки · `shell` каркас (сайдбар на всю высоту, шапка с крошками) · `components` карточки, списки, чипы, таблицы, поля, панель, диалог · `onboarding` · `assistant` · `theme` тема «Signal» (ReUI/shadcn): рамки, фреймы, бейджи, таблицы · `pulse` · `mobile` телефон: нижняя панель, камера, safe-area (только `max-width: 600px` и полноэкранная камера, десктоп не трогает).
 
 **Логика (без UI):**
 - `src/recognize/` — распознавание документов: `schema` поля, `client` вызов API, `checks` проверки, `chart` план счетов и корреспонденции, `accounts` список счетов, `rules` правила по контрагенту, `nomenclature` справочник, `basis` подстава и статьи ДДС, `settlements` взаиморасчёты, `suppliers`/`companies`/`registry` реестры, `cost`/`escalate` стоимость и второе чтение.

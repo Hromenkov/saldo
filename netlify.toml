@@ -14,3 +14,16 @@
   from = "/app"
   to = "/index.html"
   status = 200
+
+# service worker завжди свіжий, інакше телефон довго тримає стару версію сайту
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    Cache-Control = "no-cache"
+    Service-Worker-Allowed = "/"
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+    Cache-Control = "no-cache"

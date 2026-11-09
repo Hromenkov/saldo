@@ -4,6 +4,7 @@ import { AssetSheet } from '../views/Assets';
 import { cx } from '../lib';
 import { DocSheet } from './overlays/DocSheet';
 import { OpSheet } from './overlays/OpSheet';
+import { InstallDialog } from '../mobile/Mobile';
 import { ActDialog, PlanDialog, SignDialog, UploadDialog } from './overlays/dialogs';
 
 export function Overlays() {
@@ -26,6 +27,7 @@ export function Overlays() {
         {dl?.kind === 'sign' && <SignDialog key={s.overlaySeq} name={dl.name} per={dl.per} />}
         {dl?.kind === 'upload' && <UploadDialog key={s.overlaySeq} />}
         {dl?.kind === 'plan' && <PlanDialog key={s.overlaySeq} />}
+        {dl?.kind === 'install' && <InstallDialog key={s.overlaySeq} />}
         {dl?.kind === 'act' && <ActDialog key={s.overlaySeq} cp={dl.cp} edrpou={dl.edrpou} />}
       </div></div>
       <div className={cx('snack', snackState.open && 'open')} id="snack" role="status">

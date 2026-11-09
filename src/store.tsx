@@ -7,7 +7,7 @@ import { asOf, audit } from './audit';
 export type Role = 'owner' | 'acc';
 export type View = 'overview' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'assets' | 'structure' | 'stock' | 'vat' | 'payroll' | 'credit' | 'audit';
 export type Sheet = { kind: 'doc'; id: number } | { kind: 'op'; i: number } | { kind: 'asset'; id: string };
-export type Dialog = { kind: 'sign'; name: string; per: string } | { kind: 'upload' } | { kind: 'plan' } | { kind: 'act'; cp: string; edrpou?: string };
+export type Dialog = { kind: 'sign'; name: string; per: string } | { kind: 'upload' } | { kind: 'plan' } | { kind: 'act'; cp: string; edrpou?: string } | { kind: 'install' };
 
 export type State = {
   role: Role; mode: 'mgmt' | 'acc'; period: string; view: View;
@@ -28,6 +28,8 @@ export type State = {
   /** кожне відкриття — свіжа форма, як у прототипі */
   overlaySeq: number;
   drawerOpen: boolean; onbOpen: boolean;
+  /** повноекранна камера для фото накладної (телефон, /app/camera) */
+  cameraOpen: boolean;
 };
 
 /** Кількість помилок аудиту для значка в меню; рахується з тих самих документів і банку */
@@ -64,13 +66,16 @@ export const NAV: Record<Role, [View, string, string, ((s: State) => number | ''
 
 const onbSeen = () => { try { return sessionStorage.getItem('saldo-onb') === '1'; } catch { return false; } };
 
+/** Ярлик «Сфотографувати накладну» з головного екрана телефона відкриває /app/camera одразу в камері */
+const cameraLink = () => { try { return /\/camera\/?$/.test(location.pathname); } catch { return false; } };
+
 const initial = (): State => ({
   role: 'owner', mode: 'mgmt', period: 'Листопад 2026', view: 'overview', docTab: 'all', structTab: 'Усі',
   docs: structuredClone(DOCS), bank: structuredClone(BANK), questions: structuredClone(QUESTIONS),
   reports: structuredClone(REPORTS), close: structuredClone(CLOSE), history: structuredClone(HISTORY), assets: structuredClone(ASSETS),
   ledger: structuredClone(LEDGER), ledgerSrc: null,
   biz: null, chat: INITIAL_CHAT(), nav: 0,
-  sheet: null, sheetOpen: false, overlaySeq: 0, dialog: null, dialogOpen: false, drawerOpen: false, onbOpen: !onbSeen()
+  sheet: null, sheetOpen: false, overlaySeq: 0, dialog: null, dialogOpen: false, drawerOpen: false, onbOpen: !onbSeen() && !cameraLink(), cameraOpen: cameraLink()
 });
 
 type Snack = { text: string; undo: (() => void) | null; open: boolean; seq: number };

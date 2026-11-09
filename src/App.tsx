@@ -5,6 +5,8 @@ import { Main } from './MainView';
 import { Assistant } from './components/Assistant';
 import { Overlays } from './components/Overlays';
 import { Onboarding } from './components/Onboarding';
+import { Capture } from './mobile/Capture';
+import { BottomBar, InstallItem, QueueRunner } from './mobile/Mobile';
 
 const useWide = () => {
   const q = '(min-width: 1201px)';
@@ -40,6 +42,7 @@ function Drawer() {
             <Ms>{ic}</Ms>{label}<span className="badge">{badge ? badge(s) : ''}</span>
           </button>
         ))}
+        <InstallItem />
       </div>
       <div className="drawer-foot">
         <div className="label-m muted">ЛИСТОПАД 2026</div>
@@ -84,8 +87,11 @@ export default function App() {
           <Assistant open={assistOpen} wide={wide} onClose={() => setAssistOpen(false)} />
         </div>
       </div>
+      <BottomBar />
       <Onboarding />
       <Overlays />
+      <Capture />
+      <QueueRunner />
     </>
   );
 }

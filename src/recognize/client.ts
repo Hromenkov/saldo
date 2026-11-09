@@ -31,6 +31,8 @@ async function shrinkImage(file: File): Promise<{ blob: Blob; side: number }> {
 }
 
 export class RecognizeError extends Error {}
+/** Немає зв’язку: фото можна покласти в чергу й надіслати пізніше */
+export class OfflineError extends RecognizeError {}
 
 async function payload(file: File, company: string[]): Promise<RecognizeRequest & { side?: number }> {
   const isPdf = file.type === 'application/pdf' || /\.pdf$/i.test(file.name);
@@ -48,10 +50,11 @@ export async function recognizeFile(file: File, company: string[], existing: Doc
   let res: Response;
   try {
     res = await fetch('/api/recognize', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ ...body, side: undefined }) });
-  } catch { throw new RecognizeError('Немає з’єднання з сервером розпізнавання'); }
+  } catch { throw new OfflineError('Немає з’єднання з сервером розпізнавання'); }
   let data: RecognizeResponse;
-  try { data = await res.json(); } catch { throw new RecognizeError(res.status === 404 ? 'Розпізнавання доступне лише на сайті, не в локальному режимі' : `Сервер відповів з помилкою ${res.status}`); }
-  if (!data.ok) throw new RecognizeError(data.error);
+  try { data = await res.json(); } catch { data = { ok: false, error: res.status === 404 ? 'Розпізнавання доступне лише на сайті, не в локальному режимі' : `Сервер відповів з помилкою ${res.status}` }; }
+  // збій на боці сервера (5xx) не провина фото: з черги телефона воно піде ще раз
+  if (!data.ok) throw new (res.status >= 500 ? OfflineError : RecognizeError)(data.error);
 
   const r = data.result;
   // відомий контрагент підставляється з довідника: назва й код як у вашому обліку, а не як прочитано

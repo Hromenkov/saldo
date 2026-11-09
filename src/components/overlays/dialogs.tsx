@@ -1,13 +1,11 @@
 import { useRef } from 'react';
-import { recognizeFile } from '../../recognize/client';
-import { ourCompanies } from '../../recognize/companies';
-import { withPosted } from '../../recognize/registry';
 import { balances, movements, reconciliation } from '../../recognize/settlements';
 import { mergeFromBas } from '../../recognize/nomenclature';
 import { import1c, is1cFile, type Imported } from '../../import1c';
 import { CHANGE_TYPES } from '../../data';
 import { useApp } from '../../store';
 import { fmt, Ms, plural } from '../../lib';
+import { errText, useRecognize } from '../useRecognize';
 
 const Tf = ({ id, label, children, ic }: { id: string; label: string; children: React.ReactNode; ic?: string }) =>
   <div className="tf">{children}<label htmlFor={id}>{label}</label>{ic && <Ms className="trail-ic">{ic}</Ms>}</div>;
@@ -30,10 +28,9 @@ export function SignDialog({ name, per }: { name: string; per: string }) {
   );
 }
 
-const errText = (e: unknown) => (e instanceof Error ? e.message : 'Невідома помилка');
-
 export function UploadDialog() {
-  const { s, upd, go, snack, hideDialog, openSheet } = useApp();
+  const { upd, go, snack, hideDialog } = useApp();
+  const recognize = useRecognize();
 
   const apply1c = (name: string, r: Imported) => {
     if (r.kind === 'bank') {
@@ -66,20 +63,7 @@ export function UploadDialog() {
     for (const f of files.filter(is1cFile)) {
       try { msgs.push(apply1c(f.name, await import1c(f))); } catch (e) { msgs.push(`${f.name}: ${errText(e)}`); }
     }
-    const rec = files.filter(f => !is1cFile(f));
-    if (rec.length) {
-      snack(`Розпізнаю ${rec.length} ${plural(rec.length, 'файл', 'файли', 'файлів')}. Це займе до хвилини`);
-      const base = Date.now() + 1000;
-      const res = await Promise.allSettled(rec.map((f, i) => recognizeFile(f, ourCompanies(), withPosted(s.docs), base + i)));
-      const done = res.flatMap(r => (r.status === 'fulfilled' ? [r.value] : []));
-      if (done.length) { upd(x => { x.docs.unshift(...done); }); go('docs'); }
-      res.forEach(r => { if (r.status === 'rejected') msgs.push(errText(r.reason)); });
-      if (done.length) {
-        const check = done.filter(d => d.st === 'check').length;
-        msgs.unshift(`Розпізнано ${done.length} ${plural(done.length, 'документ', 'документи', 'документів')}` + (check ? `, ${check} ${plural(check, 'потребує', 'потребують', 'потребують')} перевірки` : ', усі перевірки пройдено'));
-      }
-      if (done.length === 1) openSheet({ kind: 'doc', id: done[0].id });
-    }
+    msgs.push(...await recognize(files.filter(f => !is1cFile(f))));
     if (msgs.length) snack(msgs.join(' · '));
   };
 
