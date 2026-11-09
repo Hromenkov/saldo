@@ -7,7 +7,7 @@ import { asOf, audit } from './audit';
 export type Role = 'owner' | 'acc';
 export type View = 'overview' | 'pulse' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'assets' | 'structure' | 'stock' | 'vat' | 'payroll' | 'credit' | 'audit';
 export type Sheet = { kind: 'doc'; id: number } | { kind: 'op'; i: number } | { kind: 'asset'; id: string };
-export type Dialog = { kind: 'sign'; name: string; per: string } | { kind: 'upload' } | { kind: 'plan' } | { kind: 'act'; cp: string; edrpou?: string };
+export type Dialog = { kind: 'sign'; name: string; per: string } | { kind: 'upload' } | { kind: 'plan' } | { kind: 'act'; cp: string; edrpou?: string } | { kind: 'install' };
 
 export type State = {
   role: Role; mode: 'mgmt' | 'acc'; period: string; view: View;
@@ -32,6 +32,8 @@ export type State = {
   /** кожне відкриття — свіжа форма, як у прототипі */
   overlaySeq: number;
   drawerOpen: boolean; onbOpen: boolean;
+  /** повноекранна камера для фото накладної (телефон, /app/camera) */
+  cameraOpen: boolean;
 };
 
 /** Кількість помилок аудиту для значка в меню; рахується з тих самих документів і банку */
@@ -76,6 +78,9 @@ const hashView = (): View | null => { const h = location.hash.replace(/^#\/?/, '
 
 const onbSeen = () => { try { return sessionStorage.getItem('saldo-onb') === '1'; } catch { return false; } };
 
+/** Ярлик «Сфотографувати накладну» з головного екрана телефона відкриває /app/camera одразу в камері */
+const cameraLink = () => { try { return /\/camera\/?$/.test(location.pathname); } catch { return false; } };
+
 /** Посилання з лендингу: /app?view=pulse відкриває одразу потрібну сторінку демо, без онбордингу */
 const linkedView = (): View | null => {
   try { const v = new URLSearchParams(location.search).get('view'); return NAV.owner.some(n => n[0] === v) ? v as View : null; } catch { return null; }
@@ -88,7 +93,7 @@ const initial = (): State => ({
   reports: structuredClone(REPORTS), close: structuredClone(CLOSE), history: structuredClone(HISTORY), assets: structuredClone(ASSETS),
   ledger: structuredClone(LEDGER), ledgerSrc: null,
   biz: null, chat: INITIAL_CHAT(), nav: 0,
-  sheet: null, sheetOpen: false, overlaySeq: 0, dialog: null, dialogOpen: false, drawerOpen: false, onbOpen: !onbSeen() && !linkedView()
+  sheet: null, sheetOpen: false, overlaySeq: 0, dialog: null, dialogOpen: false, drawerOpen: false, onbOpen: !onbSeen() && !linkedView() && !cameraLink(), cameraOpen: cameraLink()
 });
 
 type Snack = { text: string; undo: (() => void) | null; open: boolean; seq: number };

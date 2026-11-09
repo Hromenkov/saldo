@@ -5,10 +5,10 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc -b && tsx scripts/check-schema.mts && tsx scripts/check-postings.mts && tsx scripts/check-finance.mts && tsx scripts/check-assets.mts && tsx scripts/check-stock.mts && tsx scripts/check-prices.mts && tsx scripts/check-vat.mts && tsx scripts/check-payroll.mts && tsx scripts/check-audit.mts && tsx scripts/check-export.mts && tsx scripts/check-pulse.mts && tsx scripts/check-recognize.mts && vite build",
+    "build": "tsc -b && tsx scripts/check-schema.mts && tsx scripts/check-postings.mts && tsx scripts/check-finance.mts && tsx scripts/check-assets.mts && tsx scripts/check-stock.mts && tsx scripts/check-prices.mts && tsx scripts/check-vat.mts && tsx scripts/check-payroll.mts && tsx scripts/check-audit.mts && tsx scripts/check-export.mts && tsx scripts/check-pulse.mts && tsx scripts/check-recognize.mts && tsx scripts/check-pwa.mts && vite build",
     "preview": "vite preview",
     "check:functions": "tsc -p tsconfig.functions.json",
-    "test": "tsx scripts/check-schema.mts && tsx scripts/check-postings.mts && tsx scripts/check-finance.mts && tsx scripts/check-assets.mts && tsx scripts/check-stock.mts && tsx scripts/check-prices.mts && tsx scripts/check-vat.mts && tsx scripts/check-payroll.mts && tsx scripts/check-audit.mts && tsx scripts/check-export.mts && tsx scripts/check-pulse.mts && tsx scripts/check-recognize.mts",
+    "test": "tsx scripts/check-schema.mts && tsx scripts/check-postings.mts && tsx scripts/check-finance.mts && tsx scripts/check-assets.mts && tsx scripts/check-stock.mts && tsx scripts/check-prices.mts && tsx scripts/check-vat.mts && tsx scripts/check-payroll.mts && tsx scripts/check-audit.mts && tsx scripts/check-export.mts && tsx scripts/check-pulse.mts && tsx scripts/check-recognize.mts && tsx scripts/check-pwa.mts",
     "eval": "tsx scripts/eval-recognize.mts"
   },
   "dependencies": {

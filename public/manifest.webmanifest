@@ -1,0 +1,28 @@
+{
+  "id": "/app",
+  "name": "Сальдо — облік і накладні",
+  "short_name": "Сальдо",
+  "description": "Бухгалтерія і управлінський облік: фото накладної при прийманні, розпізнавання, проводки.",
+  "lang": "uk",
+  "start_url": "/app?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#F8FAFD",
+  "theme_color": "#F0F4F9",
+  "categories": ["business", "finance", "productivity"],
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Сфотографувати накладну",
+      "short_name": "Накладна",
+      "description": "Камера для фото накладної при прийманні товару",
+      "url": "/app/camera",
+      "icons": [{ "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}
