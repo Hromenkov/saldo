@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useMemo, useRef, useState, type ReactNode } from 'react';
+import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { produce, type Draft } from 'immer';
 import { ASSETS, BANK, CLOSE, DOCS, HISTORY, LEDGER, QUESTIONS, REPORTS, type Biz, type Form, type HistoryItem } from './data';
 import { INITIAL_CHAT, type Msg } from './chat';
@@ -23,7 +23,11 @@ export type State = {
   chat: Msg[];
   /** лічильник переходів: на нього реагує анімація появи сторінки */
   nav: number;
+  /** звідки прийшли посиланням зі сторінки: ланцюжок для крихт і кнопки «Назад» */
+  trail: View[];
   sheet: Sheet | null; sheetOpen: boolean;
+  /** попередні картки, якщо з картки відкрили іншу (наприклад, пов’язаний документ) */
+  sheetBack: Sheet[];
   dialog: Dialog | null; dialogOpen: boolean;
   /** кожне відкриття — свіжа форма, як у прототипі */
   overlaySeq: number;
@@ -63,6 +67,13 @@ export const NAV: Record<Role, [View, string, string, ((s: State) => number | ''
   ]
 };
 
+/** Назва сторінки для крихт: з меню поточної ролі, інакше з будь-якої */
+export const viewLabel = (role: Role, v: View) =>
+  (NAV[role].find(n => n[0] === v) || NAV.owner.find(n => n[0] === v) || NAV.acc.find(n => n[0] === v))?.[2] || v;
+
+const ALL_VIEWS = new Set<string>([...NAV.owner, ...NAV.acc].map(n => n[0]));
+const hashView = (): View | null => { const h = location.hash.replace(/^#\/?/, ''); return ALL_VIEWS.has(h) ? h as View : null; };
+
 const onbSeen = () => { try { return sessionStorage.getItem('saldo-onb') === '1'; } catch { return false; } };
 
 /** Посилання з лендингу: /app?view=pulse відкриває одразу потрібну сторінку демо, без онбордингу */
@@ -71,7 +82,8 @@ const linkedView = (): View | null => {
 };
 
 const initial = (): State => ({
-  role: 'owner', mode: 'mgmt', period: 'Листопад 2026', view: linkedView() ?? 'overview', docTab: 'all', structTab: 'Усі',
+  role: hashView() && !NAV.owner.some(n => n[0] === hashView()) ? 'acc' : 'owner', mode: 'mgmt', period: 'Листопад 2026',
+  view: linkedView() ?? hashView() ?? 'overview', trail: [], sheetBack: [], docTab: 'all', structTab: 'Усі',
   docs: structuredClone(DOCS), bank: structuredClone(BANK), questions: structuredClone(QUESTIONS),
   reports: structuredClone(REPORTS), close: structuredClone(CLOSE), history: structuredClone(HISTORY), assets: structuredClone(ASSETS),
   ledger: structuredClone(LEDGER), ledgerSrc: null,
@@ -84,7 +96,10 @@ type Snack = { text: string; undo: (() => void) | null; open: boolean; seq: numb
 type Ctx = {
   s: State;
   upd: (f: (d: Draft<State>) => void) => void;
-  go: (v: View) => void;
+  /** перехід посиланням зі сторінки; top: з меню (без ланцюжка «назад») */
+  go: (v: View, opts?: { top?: boolean }) => void;
+  /** крок назад: картка → попередня картка, сторінка → попередня сторінка */
+  back: () => void;
   snack: (text: string, undo?: () => void) => void;
   snackState: Snack;
   closeSnack: (runUndo: boolean) => void;
@@ -101,10 +116,37 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [s, setS] = useState(initial);
   const upd = useCallback((f: (d: Draft<State>) => void) => setS(prev => produce(prev, f)), []);
 
-  const go = useCallback((v: View) => upd(d => {
-    if (!NAV[d.role].some(n => n[0] === v)) v = NAV[d.role][0][0];
-    d.view = v; d.sheetOpen = false; d.drawerOpen = false; d.nav++;
-  }), [upd]);
+  const cur = useRef(s); cur.current = s;
+  const go = useCallback((v: View, opts?: { top?: boolean }) => {
+    const p = cur.current;
+    const target: View = NAV[p.role].some(n => n[0] === v) ? v : NAV[p.role][0][0];
+    let trail = p.trail;
+    if (opts?.top) trail = [];
+    else if (target !== p.view) {
+      const i = trail.indexOf(target);
+      trail = i >= 0 ? trail.slice(0, i) : [...trail, p.view];
+    }
+    upd(d => { d.view = target; d.trail = trail; d.sheetOpen = false; d.sheetBack = []; d.drawerOpen = false; d.nav++; });
+    // запис в історії браузера: «Назад» браузера і миші повертає на попередню сторінку разом із крихтами
+    if (target !== p.view) history.pushState({ view: target, trail, prev: p.view }, '', '#/' + target);
+    else history.replaceState({ view: target, trail, prev: history.state?.prev }, '', '#/' + target);
+  }, [upd]);
+
+  // «Назад» у браузері: показати сторінку з історії
+  useEffect(() => {
+    if (!history.state?.view) history.replaceState({ view: cur.current.view, trail: [] }, '', '#/' + cur.current.view);
+    const onPop = (e: PopStateEvent) => {
+      const v = (e.state?.view as View | undefined) || hashView() || 'overview';
+      const trail = (e.state?.trail as View[] | undefined) || [];
+      upd(d => {
+        d.sheetOpen = false; d.sheetBack = []; d.drawerOpen = false;
+        if (!NAV[d.role].some(n => n[0] === v)) d.role = NAV.owner.some(n => n[0] === v) ? 'owner' : 'acc';
+        d.trail = trail.filter(x => NAV[d.role].some(n => n[0] === x));
+        if (v !== d.view) { d.view = v; d.nav++; }
+      });
+    };
+    addEventListener('popstate', onPop); return () => removeEventListener('popstate', onPop);
+  }, [upd]);
 
   const [snackState, setSnack] = useState<Snack>({ text: '', undo: null, open: false, seq: 0 });
   const timer = useRef<number>(0);
@@ -123,8 +165,21 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<Ctx>(() => ({
     s, upd, go, snack, snackState, closeSnack,
-    openSheet: sh => upd(d => { d.sheet = sh; d.sheetOpen = true; d.overlaySeq++; }),
-    closeSheet: () => upd(d => { d.sheetOpen = false; d.drawerOpen = false; }),
+    openSheet: sh => upd(d => {
+      // картка з картки: попередню можна повернути стрілкою «Назад»
+      if (d.sheetOpen && d.sheet) d.sheetBack.push(d.sheet); else d.sheetBack = [];
+      d.sheet = sh; d.sheetOpen = true; d.overlaySeq++;
+    }),
+    closeSheet: () => upd(d => { d.sheetOpen = false; d.drawerOpen = false; d.sheetBack = []; }),
+    back: () => {
+      if (s.sheetOpen && s.sheetBack.length) upd(d => { d.sheet = d.sheetBack.pop()!; d.overlaySeq++; });
+      else if (s.sheetOpen) upd(d => { d.sheetOpen = false; d.sheetBack = []; });
+      else if (s.trail.length) {
+        const to = s.trail[s.trail.length - 1];
+        // якщо попередній запис історії і є ця сторінка, крокуємо історією, щоб не плодити записи
+        if (history.state?.view === s.view && history.state?.prev === to) history.back(); else go(to);
+      }
+    },
     openDialog: dl => upd(d => { d.dialog = dl; d.dialogOpen = true; d.overlaySeq++; }),
     hideDialog: () => upd(d => { d.dialogOpen = false; })
   }), [s, upd, go, snack, snackState, closeSnack]);

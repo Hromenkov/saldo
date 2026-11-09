@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react';
+import { SheetHead } from '../SheetHead';
 import { ACCOUNTS } from '../../recognize/accounts';
 import { saveRule } from '../../recognize/rules';
 import { blocking } from '../../recognize/checks';
@@ -127,7 +128,7 @@ export function DocSheet({ id }: { id: number }) {
   };
   return (
     <>
-      <div className="sheet-head"><h2 className="title-l">{d.type} № {d.no}</h2><button className="icon-btn sl" aria-label="Закрити" onClick={closeSheet}><Ms>close</Ms></button></div>
+      <SheetHead title={<>{d.type} № {d.no}</>} />
       <div className="sheet-body">
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><StatusChip st={d.st} /><span className="status st-mute"><Ms>{d.src === 'Telegram' ? 'send' : d.src === 'Email' ? 'mail' : 'cloud_download'}</Ms>{d.src}</span></div>
         <div className="preview" aria-hidden="true">

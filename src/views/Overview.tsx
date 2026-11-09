@@ -34,11 +34,12 @@ function PeriodMenu() {
   );
 }
 
-export function StatCard({ ic, t, v, d, meta }: { ic: string; t: string; v: string; d: React.ReactNode; outlined?: boolean; meta?: string }) {
+export function StatCard({ ic, t, v, d, meta }: { ic: string; t: string; v: string; d: React.ReactNode; meta?: string }) {
   return (
-    <div className="frame stat-frame">
-      <div className="frame-hd"><Ms>{ic}</Ms><span className="t">{t}</span>{meta && <span className="meta">{meta}</span>}</div>
-      <div className="frame-bd"><div className="stat-v"><StatValue v={v} /></div><div className="d">{d}</div></div>
+    <div className="card card-filled stat">
+      <div className="top"><Ms>{ic}</Ms><span className="title-s">{t}</span>{meta && <span className="meta body-s">{meta}</span>}</div>
+      <StatValue v={v} />
+      <div className="d body-s">{d}</div>
     </div>
   );
 }
@@ -61,7 +62,6 @@ export function Overview() {
     ['receipt_long', 'Розрахунки з бюджетом', '31 840 ₴', 'рахунки 641, 651 · ПДВ, ЄСВ, ПДФО']
   ];
   const setMode = (mode: 'mgmt' | 'acc') => upd(d => { d.mode = mode; });
-  const tabIc = { verticalAlign: -4, marginRight: 6 };
   const au = audit(s.docs, s.bank, { today: asOf() });
 
   return (
@@ -72,8 +72,8 @@ export function Overview() {
         <PeriodMenu />
       </div>
       <div className="tabs" role="tablist" aria-label="Вид обліку">
-        <button className="tab" role="tab" aria-selected={m} onClick={() => setMode('mgmt')}><Ms className="sm" style={tabIc}>insights</Ms>Управлінський облік</button>
-        <button className="tab" role="tab" aria-selected={!m} onClick={() => setMode('acc')}><Ms className="sm" style={tabIc}>account_tree</Ms>Бухгалтерський облік</button>
+        <button className="tab" role="tab" aria-selected={m} onClick={() => setMode('mgmt')}><Ms className="sm">insights</Ms>Управлінський облік</button>
+        <button className="tab" role="tab" aria-selected={!m} onClick={() => setMode('acc')}><Ms className="sm">account_tree</Ms>Бухгалтерський облік</button>
       </div>
       {s.questions.length > 0 && (
         <div className="banner"><span className="ms fill">contact_support</span>
@@ -94,7 +94,7 @@ export function Overview() {
         <div className="frame">
           <div className="frame-hd"><Ms>show_chart</Ms><span className="t">{m ? 'Усі гроші, листопад' : 'Грошові кошти (301, 311), листопад'}</span><span className="meta">17 днів</span></div>
           <div className="frame-bd"><Chart key={s.mode} add={m ? 54 : 0} /></div>
-          <button className="frame-ft" onClick={() => go('bank')}><span>Відкрити банк і каси</span><Ms>arrow_forward</Ms></button>
+          <div className="frame-ft"><button className="btn btn-text sl" onClick={() => go('bank')}>Відкрити банк і каси<Ms>arrow_forward</Ms></button></div>
         </div>
         <div className="frame">
           <div className="frame-hd"><Ms>checklist</Ms><span className="t">Що треба зробити</span><span className="meta">{due.length + 2} задачі</span></div>
@@ -107,7 +107,7 @@ export function Overview() {
             <li className="li"><span className="lead yellow"><Ms>payments</Ms></span><span className="txt"><div className="title-s">Сплатити ЄСВ і ПДФО</div><div className="s body-s">9 440,00 ₴ · платіжки готові</div></span><span className="trail"><button className="btn btn-text sl" onClick={() => snack('Платіжки надіслано в ПриватБанк на підпис')}>Оплатити</button></span></li>
             <li className="li"><span className="lead"><Ms>handshake</Ms></span><span className="txt"><div className="title-s">3 акти звірки без підпису</div><div className="s body-s">Агроресурс, Логістик-Захід, Енергозбут</div></span><span className="trail"><button className="btn btn-text sl" onClick={() => snack('Нагадування надіслано контрагентам')}>Нагадати</button></span></li>
           </ul></div>
-          <button className="frame-ft" onClick={() => go('reports')}><span>Уся звітність</span><Ms>arrow_forward</Ms></button>
+          <div className="frame-ft"><button className="btn btn-text sl" onClick={() => go('reports')}>Уся звітність<Ms>arrow_forward</Ms></button></div>
         </div>
       </div>
       <div className="grid g2eq" style={{ marginTop: 28 }}>
