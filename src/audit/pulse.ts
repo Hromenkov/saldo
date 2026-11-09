@@ -18,7 +18,12 @@ export type Pulse = {
   /** проведено, але ще не вивантажено в BAS */
   notInBas: number;
   errors: number; atStake: number;
+  /** хто саме винен і кому винні ми, від більшого боргу до меншого */
+  debtors: Debt[]; creditors: Debt[];
+  /** найстаріший непроведений документ: саме він визначає відставання обліку */
+  oldest?: Doc;
 };
+export type Debt = { cp: string; sum: number };
 
 const r2 = (n: number) => kop(n) / 100;
 const toDate = (dm: string, y: number) => { const [d, m] = dm.split('.').map(Number); return new Date(y, m - 1, d); };
@@ -35,10 +40,18 @@ export function pulse(docs: Doc[], bank: BankRow[], month: number, year: number,
 
   const parties = [...new Map(docs.filter(d => d.kind === 'sale' || d.kind.startsWith('purchase_')).map(d => [d.edrpou || d.cp, { cp: d.cp, edrpou: d.edrpou }])).values()];
   let theyOwe = 0, weOwe = 0;
-  for (const p of parties) { const b = balances(movements(p, docs, bank)); theyOwe += b.theyOwe; weOwe += b.weOwe; }
+  const debtors: Debt[] = [], creditors: Debt[] = [];
+  for (const p of parties) {
+    const b = balances(movements(p, docs, bank)); theyOwe += b.theyOwe; weOwe += b.weOwe;
+    if (b.theyOwe) debtors.push({ cp: p.cp, sum: b.theyOwe });
+    if (b.weOwe) creditors.push({ cp: p.cp, sum: b.weOwe });
+  }
+  const bySum = (a: Debt, b: Debt) => b.sum - a.sum;
 
   const waiting = docs.filter(d => d.st !== 'ok');
-  const oldest = waiting.reduce<Date | null>((a, d) => { const t = toDate(d.date, Number(d.y) || year); return !a || t < a ? t : a; }, null);
+  const at = (d: Doc) => toDate(d.date, Number(d.y) || year);
+  const oldestDoc = waiting.reduce<Doc | undefined>((a, d) => !a || at(d) < at(a) ? d : a, undefined);
+  const oldest = oldestDoc ? at(oldestDoc) : null;
   const a = audit(docs, bank, opts);
   return {
     cashIn: r2(mBank.filter(b => b.s > 0).reduce((s, b) => s + b.s, 0)),
@@ -49,6 +62,7 @@ export function pulse(docs: Doc[], bank: BankRow[], month: number, year: number,
     docs: mDocs.length, posted: posted.length, waiting: mDocs.length - posted.length,
     lagDays: oldest ? Math.max(0, Math.floor((today.getTime() - oldest.getTime()) / 864e5)) : 0,
     notInBas: docs.filter(d => d.st === 'ok' && d.src !== '1С' && (d.kind === 'sale' || d.kind.startsWith('purchase_')) && !d.basAt).length,
-    errors: a.errors, atStake: a.atStake
+    errors: a.errors, atStake: a.atStake,
+    debtors: debtors.sort(bySum), creditors: creditors.sort(bySum), oldest: oldestDoc
   };
 }
