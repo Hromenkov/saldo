@@ -3,7 +3,18 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}</style>
+<style>body{margin:0}img{max-width:100%}[hidden]{display:none!important}/* Пульс власника: управлінка поруч з обліком */
+.pulse-wrap { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 440px); gap: 64px; align-items: center; margin-top: 48px; }
+.pulse-copy { display: grid; gap: 18px; max-width: 56ch; }
+.pulse-copy p { color: var(--muted); margin: 0; }
+.pulse-copy ul { margin: 0; padding: 0 0 0 20px; display: grid; gap: 8px; }
+.pulse-copy li::marker { color: var(--muted); }
+.pulse-copy .vs { border-left: 3px solid var(--sun); padding: 4px 0 4px 16px; color: var(--ink); }
+.pulse-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 22px; margin-top: 6px; }
+.pulse-wrap .result { justify-self: end; }
+@media (max-width: 940px) { .pulse-wrap { grid-template-columns: minmax(0, 1fr); gap: 40px; } .pulse-wrap .result { justify-self: start; } }
+@media (max-width: 420px) { .pulse-wrap .stat { padding: 12px 10px; } .pulse-wrap .stat strong { font-size: 1.1rem; } }
+</style>
 <title>Сальдо для власників</title>
 <meta name="claude:viewport-fit-sides" content="cover">
 <meta name="description" content="Облік, який веде себе сам: первинка, банки і каси автоматично, звітність для податкової готова до підпису, усі цифри бізнесу у власника.">
@@ -395,6 +406,7 @@ table.compare { width: 100%; border-collapse: collapse; min-width: 640px; font-s
     <a class="brand" href="#top">Сальдо<span class="dot">.</span></a>
     <nav class="nav" aria-label="Розділи">
       <a href="#modules">Що всередині</a>
+      <a href="#pulse">Пульс</a>
       <a href="#switch">Як перейти</a>
       <a href="#pricing">Тарифи</a>
       <a href="#faq">Питання</a>
@@ -574,6 +586,45 @@ table.compare { width: 100%; border-collapse: collapse; min-width: 640px; font-s
     </div>
   </section>
 
+  <section class="block" id="pulse" aria-labelledby="pulse-h">
+    <div class="wrap">
+      <div class="head">
+        <span class="kicker">Управлінка</span>
+        <h2 id="pulse-h">Пульс власника: стан бізнесу на сьогодні<span class="dot">.</span></h2>
+      </div>
+      <div class="pulse-wrap">
+        <div class="pulse-copy">
+          <p>Окремий екран для власника. Цифри рахуються з тих самих накладних, актів і банку, що й бухоблік, тому управлінка і звітність ніколи не розходяться. Без Excel, без фінансиста і без запиту «скинь цифри».</p>
+          <ul>
+            <li>Наскільки свіжий облік: відстає на дні, а не на місяці, і що саме його тримає</li>
+            <li>Доходи, витрати і рух грошей за місяць, касовий розрив видно заздалегідь</li>
+            <li>Хто вам винен і кому винні ви, поіменно</li>
+            <li>Помилки аудиту і що ще не вивантажено в BAS</li>
+          </ul>
+          <p class="vs">Сервіси розпізнавання на кшталт JDOC переносять накладну в BAS і на цьому зупиняються. Управлінки в них немає: щоб побачити борги й маржу, усе одно треба питати бухгалтера. Сальдо веде облік далі й показує вам результат.</p>
+          <div class="pulse-actions">
+            <a class="btn" href="/app?view=pulse">Відкрити Пульс у демо</a>
+            <a class="link" href="#demo">показати на моїх даних</a>
+          </div>
+        </div>
+        <div class="result" aria-label="Приклад екрана «Пульс» з демо">
+          <div class="dash-head"><span>Пульс · ТОВ «Приклад», кав’ярня</span><span>демо</span></div>
+          <div class="stats">
+            <div class="stat active"><span>Доходи − витрати</span><strong>18 100</strong></div>
+            <div class="stat"><span>Вам винні</span><strong>14 400</strong></div>
+            <div class="stat"><span>Ви винні</span><strong>16 400</strong></div>
+          </div>
+          <ul class="todo">
+            <li class="warn"><span class="t">Облік відстає на 8 днів: чекає вашої відповіді про Енергозбут</span><span class="a">відповісти</span></li>
+            <li class="warn"><span class="t">Грошей пішло більше, ніж прийшло</span><span class="a">−21 165 ₴</span></li>
+            <li><span class="t">Помилки аудиту</span><span class="a">0 ✓</span></li>
+            <li><span class="t">Проведено, але ще не в BAS</span><span class="a go">3 документи</span></li>
+          </ul>
+        </div>
+      </div>
+    </div>
+  </section>
+
   <section class="block" aria-labelledby="legal-h">
     <div class="wrap">
       <div class="principle">
@@ -607,6 +658,7 @@ table.compare { width: 100%; border-collapse: collapse; min-width: 640px; font-s
             <tr><td>Витрати на місяць</td><td class="now">Бухгалтер або аутсорс, плюс ліцензії BAS і M.E.Doc</td><td class="us">Від 490 ₴ для ФОП до 4 990 ₴ для ТОВ</td></tr>
             <tr><td>Первинка</td><td class="now">Збирається з месенджерів і вноситься вручну</td><td class="us">Розпізнається і проводиться автоматично</td></tr>
             <tr><td>Цифри бізнесу</td><td class="now">Коли бухгалтер підготує</td><td class="us">Щодня, з телефону</td></tr>
+            <tr><td>Управлінка</td><td class="now">Окремо в Excel, якщо хтось її веде</td><td class="us">Пульс власника з тих самих документів, що й облік</td></tr>
             <tr><td>Звітність</td><td class="now">Готує бухгалтер, ви бачите лише результат</td><td class="us">Формується з обліку, який ви бачите. Підписуєте ви</td></tr>
             <tr><td>Хто контролює</td><td class="now">Бухгалтер</td><td class="us">Ви, і бухгалтер, якщо хочете</td></tr>
           </tbody>

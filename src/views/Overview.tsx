@@ -81,7 +81,7 @@ export function Overview() {
           <button className="btn btn-filled sl" onClick={() => go('questions')}>Відповісти</button>
         </div>
       )}
-      {s.role === 'owner' && <Pulse />}
+      {s.role === 'owner' && <Pulse more />}
       {au.errors > 0 && s.role !== 'owner' && (
         <div className="banner"><span className="ms fill">fact_check</span>
           <div className="txt"><div className="title-s">Аудит знайшов {au.errors} {au.errors === 1 ? 'помилку' : au.errors < 5 ? 'помилки' : 'помилок'} на {money(au.atStake)} ₴</div><div className="body-m">Перевірено {au.checked} документів до копійки: суми, ПДВ, проводки, дублікати, оплати.</div></div>

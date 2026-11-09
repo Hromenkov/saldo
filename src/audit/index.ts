@@ -26,8 +26,8 @@ export const money = (n: number) => n.toLocaleString('uk-UA', { minimumFractionD
 const m = (k: number) => money(uah(k));
 const title = (d: Doc) => `${d.type} № ${d.no} від ${d.date}${d.y ? '.' + d.y : ''}`;
 
-/** На яку дату перевіряємо. Демо-дані складено на кінець листопада 2026: інакше документи другої половини місяця були б «з майбутнього». */
-export const asOf = () => new Date(Math.max(Date.now(), +new Date('2026-11-30T23:59:59')));
+/** На яку дату перевіряємо. Демо-дані складено на 18 листопада 2026 (банк — по 17.11): інакше документи місяця були б «з майбутнього», а «Пульс» показував би вигадане відставання. */
+export const asOf = () => new Date(Math.max(Date.now(), +new Date('2026-11-18T12:00:00')));
 
 const VAT_KINDS = ['sale', 'purchase_goods', 'purchase_service'];
 const RATES = [20, 14, 7];
