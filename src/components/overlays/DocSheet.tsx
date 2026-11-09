@@ -10,10 +10,12 @@ import { basisChain, cashFlowArticle, CF_ARTICLES } from '../../recognize/basis'
 import { allocate, balances, movements, withAdvances } from '../../recognize/settlements';
 import { activeItems, bindItem, catalog, matchItem } from '../../recognize/nomenclature';
 import { getStock, receiveFromDoc, removeMovement } from '../../stock/store';
+import { compare, forgetDoc, recordDoc, unitPrice, usePrices } from '../../recognize/prices';
 import { type Doc } from '../../data';
 import { useApp } from '../../store';
 import { cx, fmt, Ms, plural, StatusChip } from '../../lib';
 
+const dmy = (iso: string) => `${iso.slice(8, 10)}.${iso.slice(5, 7)}.${iso.slice(0, 4)}`;
 const stocked = (acc: string) => ['201', '281', '22'].includes(acc.split(' ')[0]);
 
 export function DocSheet({ id }: { id: number }) {
@@ -22,6 +24,7 @@ export function DocSheet({ id }: { id: number }) {
   const [pick, setPick] = useState<Record<number, string>>({});
   const [accSel, setAccSel] = useState<string>();
   const [stockLoc, setStockLoc] = useState(() => getStock().locations[0]?.id || '');
+  const prices = usePrices();
   // після «Відхилити» документа вже немає в списку, але панель ще виїжджає: показуємо останній стан
   const last = useRef<Doc | undefined>(undefined);
   const d = s.docs.find(x => x.id === id) || last.current;
@@ -40,6 +43,14 @@ export function DocSheet({ id }: { id: number }) {
   // позиції, якої ще немає в довіднику, за замовчуванням створюється з назви постачальника — без окремого вибору
   const choiceOf = (i: number) => pick[i] ?? (d.items![i].nom ? 'done' : auto[i]?.id ?? 'new');
   const unbound = goods && d.st !== 'ok' ? d.items!.filter((_, i) => !choiceOf(i)).length : 0;
+  // ціни: кожен рядок порівнюється з попередніми закупівлями тієї самої позиції, скачок понад поріг підсвічується
+  const isoDate = (dt: string, y?: string) => { const [dd, mm] = dt.split('.'); return `${y || '2026'}-${mm}-${dd}`; };
+  const itemIdOf = (i: number) => { const c = d.st === 'ok' ? 'done' : choiceOf(i); return c === 'done' ? cat.find(x => x.name === d.items![i].nom)?.id : c && c !== 'new' ? c : undefined; };
+  const cmp = goods ? d.items!.map((it, i) => {
+    const item = itemIdOf(i), price = unitPrice(it);
+    return item && price ? compare(prices.points, { item, party: pk, cp: d.cp, date: isoDate(d.date, d.y), price, docId: d.id }, prices.threshold) : undefined;
+  }) : [];
+  const jumps = cmp.map((c, i) => c?.jump ? i : -1).filter(i => i >= 0);
   const needs = !!warnOf('acc');
   const net = d.sum - (d.kind === 'pn' ? 0 : d.vat);
   const accNow = accSel ?? d.acc;
@@ -91,10 +102,11 @@ export function DocSheet({ id }: { id: number }) {
     const noms = ids.map(nid => catalog().find(x => x.id === nid)?.name);
     // товари надходять на склад партією за ціною без ПДВ; рахунки 152–154 склад не веде
     const toStock = goods && acc && stocked(acc);
+    if (goods) recordDoc(d.id, d.items!.map((it, i) => ({ item: ids[i], party: pkNew || 'cp:' + cpNew, cp: cpNew, date: isoDate(dateNew, yNew), price: unitPrice(it) ?? 0, qty: it.qty ?? 0, unit: it.unit ?? undefined, doc: `${d.type} № ${noNew}` })));
     if (toStock) {
       const [dd, mm] = dateNew.split('.');
       const r = receiveFromDoc(d.id, `${d.type} № ${noNew}, ${cpNew}`, `${yNew || '2026'}-${mm}-${dd}`, stockLoc, acc!, d.items!.map((it, i) => ({ item: ids[i], qty: it.qty, price: it.price, amount: it.amount })));
-      if (r.error) { snack(r.error); return; }
+      if (r.error) { forgetDoc(d.id); snack(r.error); return; }
     }
     if (d.checks) remember({ ...d, cp: cpNew, no: noNew, date: dateNew, y: yNew, sum: sumNew, vat: vatNew });
     upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) { dd.st = 'ok'; dd.lines = linesNew; dd.cp = cpNew; dd.no = noNew; dd.date = dateNew; dd.y = yNew; dd.sum = sumNew; dd.vat = vatNew; if (acc) dd.acc = acc; if (money) dd.cf = cfNow; if (goods) dd.items!.forEach((it, i) => { it.nom = noms[i]; }); } });
@@ -103,6 +115,7 @@ export function DocSheet({ id }: { id: number }) {
       // скасувати надходження не можна, якщо з нього вже списали: тоді документ лишається проведеним
       const e = toStock ? removeMovement('doc' + d.id) : null;
       if (e) { snack(e); return; }
+      if (goods) forgetDoc(d.id);
       upd(x => { const dd = x.docs.find(y => y.id === id); if (dd) Object.assign(dd, { ...d, st: prev }); });
     });
   };
@@ -178,8 +191,11 @@ export function DocSheet({ id }: { id: number }) {
                   </select>
                   <div className="body-s" style={{ marginTop: 2, color: !c ? 'var(--md-error)' : undefined }}>{!c ? 'Немає в довіднику' : c === 'new' ? 'Нова позиція: буде створено з цієї назви' : pick[i] !== undefined ? 'Обрано вручну' : a?.how === 'map' ? 'З довідника: як у попередніх накладних' : a?.how === 'other' ? 'З довідника: так само прив’язано в іншого постачальника' : 'З довідника за схожою назвою'}</div>
                 </>}</td>}
-                <td className="r">{it.qty ?? '—'}</td><td>{it.unit ?? ''}</td><td className="r">{it.price != null ? fmt(it.price) : '—'}</td><td className="r">{it.amount != null ? fmt(it.amount) : '—'}</td></tr>;
+                <td className="r">{it.qty ?? '—'}</td><td>{it.unit ?? ''}</td><td className="r">{it.price != null ? fmt(it.price) : '—'}{cmp[i] && <div className={cx('body-s', !cmp[i]!.jump && 'muted')} style={{ whiteSpace: 'nowrap', color: cmp[i]!.jump ? 'var(--md-error)' : undefined }} title={`${cmp[i]!.ref.cp}, ${cmp[i]!.ref.doc} від ${dmy(cmp[i]!.ref.date)}: ${fmt(cmp[i]!.ref.price)} ₴`}>{cmp[i]!.pct > 0 ? '+' : ''}{cmp[i]!.pct.toLocaleString('uk-UA')} %</div>}</td><td className="r">{it.amount != null ? fmt(it.amount) : '—'}</td></tr>;
             })}</tbody></table></div>
+          {jumps.length > 0 && <ul className="body-s" style={{ margin: '8px 0 0', paddingLeft: 0, listStyle: 'none', color: 'var(--md-error)' }}>{jumps.map(i => { const c = cmp[i]!; return <li key={i} style={{ display: 'flex', gap: 6, alignItems: 'flex-start' }}><Ms style={{ fontSize: 18 }}>trending_up</Ms><span>
+            {d.items![i].nom || catalog().find(x => x.id === itemIdOf(i))?.name || d.items![i].name}: +{c.pct.toLocaleString('uk-UA')} % {c.same ? 'до минулої поставки' : `до останньої закупівлі в ${c.ref.cp}`} ({fmt(c.ref.price)} ₴ від {dmy(c.ref.date)})
+            {c.alt && <span className="muted">. У {c.alt.cp} {dmy(c.alt.date)} було {fmt(c.alt.price)} ₴</span>}</span></li>; })}</ul>}
           {unbound > 0 && <div className="body-s" style={{ marginTop: 6, color: 'var(--md-error)' }}>{unbound} {plural(unbound, 'позицію', 'позиції', 'позицій')} не прив’язано до довідника. Без цього на складі з’являться дублікати</div>}
         </div>}
         {lines.length > 0 && <div>
