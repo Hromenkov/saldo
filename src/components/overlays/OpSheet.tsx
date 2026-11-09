@@ -1,4 +1,5 @@
 import { checkLines } from '../../recognize/chart';
+import { SheetHead } from '../SheetHead';
 import { OPS } from '../../data';
 import { useApp } from '../../store';
 import { ModeChip, Ms } from '../../lib';
@@ -8,7 +9,7 @@ export function OpSheet({ i }: { i: number }) {
   const o = OPS[i];
   return (
     <>
-      <div className="sheet-head"><h2 className="title-l">{o[1]}</h2><button className="icon-btn sl" aria-label="Закрити" onClick={closeSheet}><Ms>close</Ms></button></div>
+      <SheetHead title={<>{o[1]}</>} />
       <div className="sheet-body">
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><ModeChip mode={o[5]} /><span className="status st-mute">{o[0]}</span></div>
         <div className="form-grid">

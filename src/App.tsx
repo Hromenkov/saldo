@@ -20,7 +20,7 @@ function Drawer() {
   const { s, upd, go, openDialog } = useApp();
   const total = 51, done = s.docs.filter(d => d.st === 'ok').length + 43;
   const pct = Math.round(done / total * 100);
-  const setRole = (r: 'owner' | 'acc') => { upd(d => { d.role = r; }); go(r === 'owner' ? 'overview' : 'docs'); };
+  const setRole = (r: 'owner' | 'acc') => { upd(d => { d.role = r; }); go(r === 'owner' ? 'overview' : 'docs', { top: true }); };
   const meta = s.biz ? `${s.biz.b.t} · ${s.biz.group}` : 'Кав’ярня · ТОВ, загальна система';
   return (
     <nav className={cx('drawer', s.drawerOpen && 'open')} id="drawer" aria-label="Навігація">
@@ -36,7 +36,7 @@ function Drawer() {
       </div>
       <div id="navItems">
         {NAV[s.role].map(([k, ic, label, badge]) => (
-          <button key={k} className="nav-item sl" data-view={k} aria-current={s.view === k ? 'page' : undefined} onClick={() => go(k as View)}>
+          <button key={k} className="nav-item sl" data-view={k} aria-current={s.view === k ? 'page' : undefined} onClick={() => go(k as View, { top: true })}>
             <Ms>{ic}</Ms>{label}<span className="badge">{badge ? badge(s) : ''}</span>
           </button>
         ))}
@@ -51,11 +51,13 @@ function Drawer() {
 }
 
 export default function App() {
-  const { upd, snack } = useApp();
+  const { s, upd, go, snack } = useApp();
   const wide = useWide();
-  const [assistOpen, setAssistOpen] = useState(wide);
-  // при зміні ширини вікна: на широкому помічник відкритий, на вузькому схований
-  useEffect(() => setAssistOpen(wide), [wide]);
+  // помічник відкритий одразу лише там, де поруч із ним таблиці вміщаються без прокрутки вбік
+  const roomy = () => matchMedia('(min-width: 1600px)').matches;
+  const [assistOpen, setAssistOpen] = useState(() => wide && roomy());
+  // при зміні ширини вікна: на дуже широкому помічник відкритий, на вужчому схований (кнопка в шапці відкриває)
+  useEffect(() => setAssistOpen(wide && roomy()), [wide]);
   // На широкому екрані помічник займає колонку, на вузькому виїжджає поверх сторінки
   const bodyCls = cx('body', (!wide || assistOpen) && 'with-assist');
 
@@ -64,7 +66,7 @@ export default function App() {
       <div className="app">
         <header className="topbar">
           <button className="icon-btn sl menu-btn" id="menuBtn" aria-label="Меню" onClick={() => upd(d => { d.drawerOpen = true; })}><Ms>menu</Ms></button>
-          <div className="brand"><span className="brand-mark">С</span><span className="word"><b>Сальдо</b></span></div>
+          <button className="brand sl" aria-label="Сальдо: на головну" onClick={() => go(s.role === 'owner' ? 'overview' : 'docs', { top: true })}><span className="brand-mark">С</span><span className="word"><b>Сальдо</b></span></button>
           <label className="search" aria-label="Пошук">
             <button className="icon-btn sl" tabIndex={-1} aria-hidden="true"><Ms>search</Ms></button>
             <input type="search" id="q" placeholder="Пошук документів, контрагентів, операцій"

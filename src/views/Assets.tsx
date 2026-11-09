@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { SheetHead } from '../components/SheetHead';
 import {
   accountOf, accrue, canCommission, commissionLines, DEPR_EXPENSE, disposalIssues, disposalLines, METHODS, monthAmount, newAsset,
   residual, schedule, status, TAX_GROUPS, taxGroup, validate, wear, ymAdd, ymFromLabel, ymLabel, type Asset, type Disposal, type Line, type Method
@@ -148,7 +149,7 @@ export function AssetSheet({ id }: { id: string }) {
   const g = taxGroup(d.tg);
   return (
     <>
-      <div className="sheet-head"><h2 className="title-l">{saved.name || 'Новий об’єкт ОЗ'}</h2><button className="icon-btn sl" aria-label="Закрити" onClick={closeSheet}><Ms>close</Ms></button></div>
+      <SheetHead title={<>{saved.name || 'Новий об’єкт ОЗ'}</>} />
       <div className="sheet-body">
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}><AssetStatus a={saved} />{saved.commissioned && <span className="status st-mute"><Ms>event</Ms>Введено: {ymLabel(saved.commissioned).toLowerCase()}</span>}</div>
         {locked && <div className="stats3"><div><b>{fmt(saved.cost)}</b><span>Первісна, ₴</span></div><div><b>{fmt(wear(saved))}</b><span>Знос, ₴</span></div><div><b>{fmt(residual(saved))}</b><span>Залишкова, ₴</span></div></div>}
