@@ -5,7 +5,7 @@ import { INITIAL_CHAT, type Msg } from './chat';
 import { asOf, audit } from './audit';
 
 export type Role = 'owner' | 'acc';
-export type View = 'overview' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'assets' | 'structure' | 'stock' | 'vat' | 'payroll' | 'credit' | 'audit';
+export type View = 'overview' | 'pulse' | 'questions' | 'docs' | 'bank' | 'ledger' | 'close' | 'reports' | 'ops' | 'assets' | 'structure' | 'stock' | 'vat' | 'payroll' | 'credit' | 'audit';
 export type Sheet = { kind: 'doc'; id: number } | { kind: 'op'; i: number } | { kind: 'asset'; id: string };
 export type Dialog = { kind: 'sign'; name: string; per: string } | { kind: 'upload' } | { kind: 'plan' } | { kind: 'act'; cp: string; edrpou?: string } | { kind: 'install' };
 
@@ -38,6 +38,7 @@ const auditErrors = (s: State) => audit(s.docs, s.bank, { today: asOf() }).error
 export const NAV: Record<Role, [View, string, string, ((s: State) => number | '')?][]> = {
   owner: [
     ['overview', 'space_dashboard', 'Огляд'],
+    ['pulse', 'monitor_heart', 'Пульс'],
     ['audit', 'fact_check', 'Аудит', s => auditErrors(s) || ''],
     ['questions', 'contact_support', 'Питання', s => s.questions.length || ''],
     ['reports', 'description', 'Звітність', s => s.reports.filter(r => r.st === 'ready').length || ''],
@@ -69,13 +70,18 @@ const onbSeen = () => { try { return sessionStorage.getItem('saldo-onb') === '1'
 /** Ярлик «Сфотографувати накладну» з головного екрана телефона відкриває /app/camera одразу в камері */
 const cameraLink = () => { try { return /\/camera\/?$/.test(location.pathname); } catch { return false; } };
 
+/** Посилання з лендингу: /app?view=pulse відкриває одразу потрібну сторінку демо, без онбордингу */
+const linkedView = (): View | null => {
+  try { const v = new URLSearchParams(location.search).get('view'); return NAV.owner.some(n => n[0] === v) ? v as View : null; } catch { return null; }
+};
+
 const initial = (): State => ({
-  role: 'owner', mode: 'mgmt', period: 'Листопад 2026', view: 'overview', docTab: 'all', structTab: 'Усі',
+  role: 'owner', mode: 'mgmt', period: 'Листопад 2026', view: linkedView() ?? 'overview', docTab: 'all', structTab: 'Усі',
   docs: structuredClone(DOCS), bank: structuredClone(BANK), questions: structuredClone(QUESTIONS),
   reports: structuredClone(REPORTS), close: structuredClone(CLOSE), history: structuredClone(HISTORY), assets: structuredClone(ASSETS),
   ledger: structuredClone(LEDGER), ledgerSrc: null,
   biz: null, chat: INITIAL_CHAT(), nav: 0,
-  sheet: null, sheetOpen: false, overlaySeq: 0, dialog: null, dialogOpen: false, drawerOpen: false, onbOpen: !onbSeen() && !cameraLink(), cameraOpen: cameraLink()
+  sheet: null, sheetOpen: false, overlaySeq: 0, dialog: null, dialogOpen: false, drawerOpen: false, onbOpen: !onbSeen() && !linkedView() && !cameraLink(), cameraOpen: cameraLink()
 });
 
 type Snack = { text: string; undo: (() => void) | null; open: boolean; seq: number };
